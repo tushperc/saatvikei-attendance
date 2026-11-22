@@ -7,7 +7,7 @@
 var SETUP_CONFIG = {
   GOOGLE_CLIENT_ID: '',   // OAuth Web client ID used for owner sign-in (see README step 3)
   EXTRA_ADMINS: '',       // comma separated, e.g. 'owner@gmail.com'. The account running setup is always an admin.
-  ADMIN_URL: ''           // e.g. 'https://<github-user>.github.io/<repo>/admin.html'
+  ADMIN_URL: 'https://tushperc.github.io/saativkei-attendance/admin.html' // e.g. 'https://<github-user>.github.io/<repo>/admin.html'
 };
 
 function setup() {
