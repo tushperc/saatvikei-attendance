@@ -2,8 +2,8 @@
 // Flow: find your name → tap the button → take a photo. Every line is in English with Hindi below.
 import { call, ApiError, isMock } from './api.js';
 import * as face from './face.js';
-import { $, $$, esc, initials, toast, fmtDay, getPosition, hideSplash, snap } from './ui.js';
-import { I, LOGO_URL } from './icons.js';
+import { $, $$, esc, initials, toast, getPosition, hideSplash, snap, bandMedia, longDay } from './ui.js';
+import { I, LOGO_URL, PHOTOS } from './icons.js';
 
 const TOKEN_KEY = 'saatvikei_device_token';
 // One-time move from the earlier (misspelt) key so already-paired phones stay paired.
@@ -61,7 +61,7 @@ function clockHtml() {
   const t = new Date().toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' });
   const [hm, ap] = t.split(' ');
   const [h, m] = hm.split(':');
-  return `${h}<span class="colon">:</span>${m} <small style="font-size:14px;font-weight:500">${(ap || '').toUpperCase()}</small>`;
+  return `${h}<span class="colon" aria-label=":"></span>${m}<small>${(ap || '').toLowerCase()}</small>`;
 }
 
 function to12(hm) {
@@ -73,8 +73,9 @@ function to12(hm) {
 function renderPairing(message = '') {
   hideSplash();
   app.innerHTML = `
-    <div class="p-head">${logoImg()}</div>
-    <div class="card stack rise bil" style="padding:24px">
+    <header class="band p-band">${bandMedia(todayPhoto())}${logoImg()}<div class="band-date" style="margin-top:22px;font-size:20px">${bi('Welcome', 'स्वागत है')}</div></header>
+    <div class="zari"></div>
+    <div class="card stack bil" style="padding:24px;margin-top:16px">
       <div class="ornament">${I.lotus}</div>
       <h2 class="center">${bi('Set up this phone', 'यह फ़ोन सेट करें')}</h2>
       <p class="muted center" style="margin-top:6px">${bi('Ask the owner for the 6-digit code from the owner app. This is needed only once.', 'मालिक से 6 अंकों का कोड लें। यह सिर्फ़ एक बार करना है।')}</p>
@@ -136,15 +137,21 @@ function windowLine(w) {
   return `<div class="status-pill closed">${I.clock}<span>${esc(w.reason)}<span class="hi" lang="hi">${hi}</span></span></div>`;
 }
 
+function todayPhoto() { return PHOTOS[new Date().getDate() % PHOTOS.length]; }
+
 function renderHome() {
   const r = state.init;
   const w = r.window;
+  const day = longDay();
   app.innerHTML = `
-    <div class="p-head">
+    <header class="band p-band">
+      ${bandMedia(todayPhoto())}
       ${logoImg()}
-      <div class="p-clock"><b id="clock">${clockHtml()}</b><span>${fmtDay()}</span></div>
-    </div>
-    ${windowLine(w)}
+      <div class="big-clock" id="clock">${clockHtml()}</div>
+      <div class="band-date">${esc(day.en)}<span class="hi" lang="hi">${esc(day.hi)}</span></div>
+      ${windowLine(w)}
+    </header>
+    <div class="zari"></div>
     ${isMock() ? '<div class="banner info">Demo mode: sample data, nothing is saved.</div>' : ''}
     <div class="glass search-wrap">
       ${I.search}

@@ -86,3 +86,14 @@ export const snap = {
   },
   set(key, data) { try { localStorage.setItem('snap_' + key, JSON.stringify({ t: Date.now(), d: data })); } catch { /* full or private */ } }
 };
+
+/** A portrait photo widened into a landscape band: blurred copy fills the sides, brand tint on top. */
+export function bandMedia(url) {
+  return `<div class="band-bg" style="background-image:url('${url}')"></div><img class="band-fig" src="${url}" alt="" decoding="async">`;
+}
+
+/** Long dates in English and Hindi, India time. */
+export function longDay(d = new Date()) {
+  const o = { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Asia/Kolkata' };
+  return { en: d.toLocaleDateString('en-IN', o), hi: d.toLocaleDateString('hi-IN', o) };
+}

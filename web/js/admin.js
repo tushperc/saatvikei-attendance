@@ -2,7 +2,7 @@
 // only emails on the admin list get in.
 import { call, ApiError, isMock } from './api.js';
 import * as face from './face.js';
-import { $, $$, esc, initials, sheet, toast, ACTION_LABEL, ACTION_PAST, istNow, getPosition, hideSplash, ago, snap } from './ui.js';
+import { $, $$, esc, initials, sheet, toast, ACTION_LABEL, ACTION_PAST, istNow, getPosition, hideSplash, ago, snap, bandMedia } from './ui.js';
 import { I, LOGO_URL, PHOTOS } from './icons.js';
 
 const app = $('#app');
@@ -48,10 +48,10 @@ function renderSignIn(message = '') {
   app.innerHTML = `
     <div class="signin">
       <div class="glass signin-card rise">
-        <div class="photo" style="background-image:url('${PHOTOS[0]}')"></div>
+        <div class="band">${bandMedia(PHOTOS[0])}</div>
         <div class="body stack">
           ${logo('logo')}
-          <div class="muted small" style="letter-spacing:.22em;text-transform:uppercase">Owner studio</div>
+          <div class="muted small">Owner studio</div>
           <p class="muted" style="margin:10px 0 4px">Attendance, photos and fixes, all in one place.</p>
           ${message ? `<div class="banner bad">${I.alert}<span>${esc(message)}</span></div>` : ''}
           <div class="gbtn-wrap" id="gbtn"></div>
@@ -119,7 +119,33 @@ async function refreshBadges() {
   } catch { /* ignore */ }
 }
 
+/* Unsaved changes: a bar with "Save changes" appears as soon as a form is edited. */
+let dirtyForm = null;
+let skipRoute = false;
+function clearSavebar() { dirtyForm = null; document.getElementById('savebar')?.remove(); }
+function watchForm(form, onDiscard) {
+  const show = () => {
+    if (dirtyForm) return;
+    dirtyForm = form;
+    const bar = document.createElement('div');
+    bar.className = 'savebar'; bar.id = 'savebar';
+    bar.innerHTML = `<span>You have unsaved changes</span><button class="btn ghost sm" id="sbDiscard">Discard</button><button class="btn primary sm" id="sbSave">Save changes</button>`;
+    document.body.appendChild(bar);
+    $('#sbSave').onclick = () => form.requestSubmit();
+    $('#sbDiscard').onclick = () => { clearSavebar(); onDiscard(); };
+  };
+  form.addEventListener('input', show);
+  form.addEventListener('change', show);
+  return show;
+}
+window.addEventListener('beforeunload', (e) => { if (dirtyForm) { e.preventDefault(); e.returnValue = ''; } });
+
 function route(force) {
+  if (skipRoute) { skipRoute = false; return; }
+  if (dirtyForm) {
+    if (!confirm('You have unsaved changes. Leave without saving?')) { skipRoute = true; location.hash = currentView; return; }
+    clearSavebar();
+  }
   const h = location.hash.replace(/^#/, '');
   let view = 'today', arg = null;
   if (h.startsWith('day=')) { view = 'today'; arg = h.slice(4); }
@@ -229,8 +255,8 @@ function renderDay(r, date, dateArg, lastSeen, fromCache) {
       <label class="day-pill" style="cursor:pointer;position:relative"><span class="cal">${I.calendar}</span><input type="date" id="pick" max="${today}" value="${date}" style="position:absolute;inset:0;opacity:0"></label>
     </div>
 
-    <div class="hero rise" style="animation-delay:60ms">
-      <div class="photo" style="background-image:url('${photo}')"></div>
+    <div class="hero band">
+      ${bandMedia(photo)}
       <div class="hero-top">
         ${closedDay ? `<span class="glass-pill closed">${I.clock} Weekly off</span>`
           : isToday ? (r.window.is_open ? `<span class="glass-pill ok"><i class="live-dot"></i> Store open · until ${esc(to12(r.window.close_time))}</span>` : `<span class="glass-pill closed">${I.clock} ${esc(r.window.reason.replace(' It opens again tomorrow.', ''))}</span>`)
@@ -399,7 +425,7 @@ function correctionForm({ type, emp, date, punch, reload, preset }) {
         ${Object.keys(ACTION_LABEL).map((a) => `<option value="${a}" ${preset === a ? 'selected' : ''}>${ACTION_LABEL[a]}</option>`).join('')}</select></label>` : ''}
       ${type === 'ADD_PUNCH' || type === 'CHANGE_TIME' ? `<label class="field"><span>Time</span><input class="input" type="time" name="time" required value="${punch?.hm ? esc(punch.hm) : ''}"></label>` : ''}
       <label class="field"><span>Reason (required)</span><textarea class="input" name="reason" required minlength="3" placeholder="e.g. Forgot to punch out, left at 9 PM, confirmed on call"></textarea></label>
-      <button class="btn primary block big" type="submit">Save change</button>
+      <button class="btn primary block big" type="submit">Save changes</button>
       <button class="btn ghost block" type="button" data-close>Cancel</button>
     </form>`);
   $('#cf', s.el).onsubmit = (ev) => {
@@ -581,7 +607,6 @@ function editEmployee(e) {
       </div>
       <label class="field"><span>Notes</span><input class="input" name="notes" value="${esc(e.notes || '')}"></label>
       ${!isNew ? `<div class="toggle-row"><span>Active (shows on the punch phone)</span><label class="switch"><input type="checkbox" name="active" ${e.active === 'yes' ? 'checked' : ''}><span></span></label></div>` : ''}
-      <button class="btn primary block big" type="submit">Save</button>
       ${!isNew ? `
         <div class="divider"><i class="diamond"></i><span>Telegram receipts</span><i class="diamond"></i></div>
         <p class="muted small" style="margin:0">Optional. If ${esc(e.name)} wants a copy of every punch, they install Telegram and open this link once.</p>
@@ -593,14 +618,17 @@ function editEmployee(e) {
         <div class="divider"><i class="diamond"></i><span>Remove</span><i class="diamond"></i></div>
         <p class="muted small" style="margin:0">For test or mistaken entries. If someone has left the job, turn off <b>Active</b> above instead, which keeps them in Records for salary.</p>
         <button class="btn block" type="button" id="remove" style="color:var(--bad)">${I.trash} Remove ${esc(e.name)}</button>` : ''}
-      <button class="btn ghost block" type="button" data-close>Close</button>
+      <div class="sheet-save stack">
+        <button class="btn primary block big" type="submit">${isNew ? 'Add staff member' : 'Save changes'}</button>
+        <button class="btn ghost block" type="button" data-close>Close</button>
+      </div>
     </form>`);
   $('#ef', s.el).onsubmit = async (ev) => {
     ev.preventDefault();
     const f = new FormData(ev.target);
     const body = { emp_id: e.emp_id, name: f.get('name'), role: f.get('role'), phone: f.get('phone'), monthly_salary: f.get('monthly_salary'), shift_start: f.get('shift_start'), shift_end: f.get('shift_end'), notes: f.get('notes') };
     if (!isNew) body.active = f.get('active') ? 'yes' : 'no';
-    try { await api('admin.employee.save', { employee: body }); toast('Saved'); s.close(); viewStaff(); }
+    try { await api('admin.employee.save', { employee: body }); toast(isNew ? `${body.name} added` : 'Changes saved'); s.close(); viewStaff(); }
     catch (err) { toast(err.message, 4000); }
   };
   if (isNew) return;
@@ -709,7 +737,7 @@ async function viewSetup() {
       ${r.telegram.configured ? `
         <div class="spread"><div class="small">Bot <b>@${esc(r.telegram.bot)}</b></div><span class="chip ok"><i class="live-dot"></i>Active</span></div>
         <div>${r.telegram.chats.length ? r.telegram.chats.map((c) => `<div class="list-row"><div class="avatar sm">${esc(initials(c.name || 'T'))}</div><div class="grow"><b>${esc(c.name || 'Chat')}</b><span class="muted small">${esc(c.email)} · since ${esc(c.linked_on)}</span></div><button class="btn sm" data-unlink="${esc(c.chat_id)}">Remove</button></div>`).join('') : '<div class="muted small">No one is getting alerts yet.</div>'}</div>
-        <div class="row wrap"><button class="btn grow" id="tgme">${I.link} Connect my Telegram</button><button class="btn grow" id="tgtest" ${r.telegram.chats.length ? '' : 'disabled'}>${I.bell} Send test</button></div>
+        <div class="row wrap"><button class="btn grow" id="tgme">${I.link} Connect Telegram</button><button class="btn grow" id="tgtest" ${r.telegram.chats.length ? '' : 'disabled'}>${I.bell} Send test</button></div>
         <div id="tgmeout"></div>
         <details><summary class="small muted">Change bot token</summary><div class="row" style="margin-top:8px"><input class="input grow" id="tgtoken" placeholder="123456:ABC…"><button class="btn" id="tgsave">Save</button></div></details>`
       : `<p class="muted small" style="margin:0">Create a free bot: open Telegram, search <b>@BotFather</b>, send <code>/newbot</code>, follow the steps, then paste the token here.</p>
@@ -749,7 +777,7 @@ async function viewSetup() {
         <label class="field"><span>Tries before approval</span><input class="input" name="face_retries" inputmode="numeric" value="${esc(st.face_retries)}"></label>
       </div>
       <label class="field"><span>Owner app link (for Telegram "Fix it")</span><input class="input" name="admin_url" value="${esc(st.admin_url || adminUrlDefault)}"></label>
-      <button class="btn primary block big" type="submit">Save settings</button>
+      <button class="btn primary block big" type="submit">Save changes</button>
     </form>
 
     <div class="glass card stack rise" style="margin-top:14px;animation-delay:150ms">
@@ -794,20 +822,22 @@ async function viewSetup() {
   $$('[data-revoke]').forEach((b) => b.onclick = async () => { if (!confirm('Remove this phone? It will no longer be able to punch.')) return; await api('admin.device.revoke', { device_id: b.dataset.revoke }); toast('Phone removed'); viewSetup(); });
 
   // Settings
+  const markDirty = watchForm($('#sf'), () => viewSetup());
   $('#facecheck').onchange = (ev) => { $('#facefields').hidden = !ev.target.checked; };
   $('#here').onclick = async () => {
     $('#loc').textContent = 'Getting location…';
     const g = await getPosition(15000);
     if (g.error) { $('#loc').textContent = g.error; return; }
     $('[name=store_lat]').value = g.lat.toFixed(6); $('[name=store_lng]').value = g.lng.toFixed(6);
-    $('#loc').innerHTML = `${I.pin} ${g.lat.toFixed(6)}, ${g.lng.toFixed(6)} (±${Math.round(g.accuracy)} m). Press Save.`;
+    $('#loc').innerHTML = `${I.pin} ${g.lat.toFixed(6)}, ${g.lng.toFixed(6)} (±${Math.round(g.accuracy)} m). Tap Save changes.`;
+    markDirty();
   };
   $('#sf').onsubmit = async (ev) => {
     ev.preventDefault();
     const values = Object.fromEntries(new FormData(ev.target).entries());
     values.closed_weekdays = $$('[data-day]').filter((c) => c.checked).map((c) => c.dataset.day).join(',');
     values.face_check = $('#facecheck').checked ? 'yes' : 'no';
-    try { const x = await api('admin.settings.save', { values }); me.face_check = values.face_check === 'yes'; me.store_name = values.store_name; toast(x.changes.length ? 'Settings saved' : 'Nothing changed'); } catch (e) { toast(e.message, 4000); }
+    try { const x = await api('admin.settings.save', { values }); me.face_check = values.face_check === 'yes'; me.store_name = values.store_name; clearSavebar(); toast(x.changes.length ? 'Changes saved' : 'Nothing to save'); } catch (e) { toast(e.message, 4000); }
   };
 
   // Admins
