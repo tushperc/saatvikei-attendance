@@ -23,6 +23,7 @@ function requireAdmin_(req) {
     if (secsLeft <= 0) throw apiError_('AUTH_REQUIRED', 'Your sign-in has expired. Please sign in again.');
     email = String(info.email).toLowerCase();
     cache.put(key, email, Math.max(30, Math.min(600, secsLeft)));
+    if (info.given_name) cache.put('name_' + email, String(info.given_name), 21600);
   }
   if (adminEmails_().indexOf(email) < 0) throw apiError_('NOT_ADMIN', email + ' is not an admin of this attendance system.');
   return email;
@@ -38,7 +39,8 @@ function withLock_(fn) {
 
 function adminMe_(req) {
   var email = requireAdmin_(req);
-  return { ok: true, email: email, store_name: settings_().store_name, face_check: isYes_(settings_().face_check) };
+  var name = CacheService.getScriptCache().get('name_' + email) || '';
+  return { ok: true, email: email, name: name, store_name: settings_().store_name, face_check: isYes_(settings_().face_check) };
 }
 
 function dayReport_(date, rawAll, corrAll, attAll, emps, s) {
@@ -56,13 +58,13 @@ function dayReport_(date, rawAll, corrAll, attAll, emps, s) {
       summary: sum,
       punches: mine.map(function (p) {
         return {
-          id: p.id, time: fmt12_(p.ts), hm: istParts_(p.ts).hm, action: p.action, status: p.status, method: p.method,
+          id: p.id, ts: p.ts, time: fmt12_(p.ts), hm: istParts_(p.ts).hm, action: p.action, status: p.status, method: p.method,
           source: p.source, edited: p.edited, face_distance: p.face_distance, distance_m: p.distance_m,
           selfie_id: p.selfie_id || (rawById[p.id] ? rawById[p.id].selfie_id : ''), reason: p.reason || ''
         };
       }),
       attempts: attAll.filter(function (a) { return a.date === date && a.emp_id === e.emp_id; }).map(function (a) {
-        return { id: a.attempt_id, time: fmt12_(Number(a.ts_ms)), action: a.action, reason: a.reason, distance_m: a.distance_m, selfie_id: a.selfie_id, face_distance: a.face_distance };
+        return { id: a.attempt_id, ts: Number(a.ts_ms), time: fmt12_(Number(a.ts_ms)), action: a.action, reason: a.reason, distance_m: a.distance_m, selfie_id: a.selfie_id, face_distance: a.face_distance };
       })
     };
   }).filter(function (r) { return r.active || r.punches.length; });
@@ -88,6 +90,20 @@ function adminPending_(req) {
     return { id: r.log_id, date: r.date, date_text: fmtDateLong_(r.date), time: fmt12_(Number(r.ts_ms)), emp_id: r.emp_id, name: r.name, action: r.action, face_distance: r.face_distance, distance_m: r.distance_m, selfie_id: r.selfie_id };
   });
   return { ok: true, pending: list.reverse() };
+}
+
+/** Small counts for the tab badges: pending approvals, new activity since a time, open problems today. */
+function adminBadges_(req) {
+  requireAdmin_(req);
+  var since = Number(req.since) || 0;
+  var today = istParts_(Date.now()).date;
+  var raw = readLastObjects_(SHEET.LOG, 600), corr = readObjects_(SHEET.CORR), att = readLastObjects_(SHEET.ATT, 300);
+  var decided = {};
+  corr.forEach(function (c) { if (c.type === 'APPROVE' || c.type === 'REJECT' || c.type === 'VOID') decided[c.ref_log_id] = true; });
+  var pending = readObjects_(SHEET.LOG).filter(function (r) { return r.status === 'PENDING' && !decided[r.log_id]; }).length;
+  var fresh = raw.filter(function (r) { return r.date === today && Number(r.ts_ms) > since; }).length +
+    att.filter(function (a) { return a.date === today && Number(a.ts_ms) > since; }).length;
+  return { ok: true, pending: pending, new_activity: fresh, server_time: Date.now() };
 }
 
 function adminRange_(req) {

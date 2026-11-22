@@ -42,7 +42,7 @@ function seed() {
       { attempt_id: 'A-1', ts_ms: String(at(yest, '10:29')), date: yest, emp_id: 'E03', name: 'Amit Kumar', action: 'IN', reason: 'FACE_MISMATCH', face_distance: '0.61', distance_m: '20', selfie_id: 'demo' }
     ],
     devices: [{ device_id: 'DEV-1', name: "Rahul's phone", active: 'yes', created_on: yest, created_by: 'owner@example.com' }],
-    settings: { face_check: 'no', store_name: 'Saativkei', open_time: '00:00', close_time: '23:59', closed_weekdays: '', store_lat: '28.4595', store_lng: '77.0266', store_radius_m: '100', max_gps_accuracy_m: '200', face_threshold: '0.5', face_retries: '3', min_gap_minutes: '2', late_grace_min: '10', default_shift_start: '10:00', admin_url: '' },
+    settings: { face_check: 'no', store_name: 'Saatvikei', open_time: '00:00', close_time: '23:59', closed_weekdays: '', store_lat: '28.4595', store_lng: '77.0266', store_radius_m: '100', max_gps_accuracy_m: '200', face_threshold: '0.5', face_retries: '3', min_gap_minutes: '2', late_grace_min: '10', default_shift_start: '10:00', admin_url: '' },
     chats: [], admins: ['owner@example.com', 'developer@example.com']
   };
 }
@@ -90,7 +90,7 @@ export async function mockCall(req) {
       save(db);
       return { ok: true, status: req.override ? 'PENDING' : 'OK', name: e.name, action: req.punch, time: L.fmt12_(now) };
     }
-    case 'admin.me': return { ok: true, email: 'owner@example.com', store_name: s.store_name, face_check: s.face_check === 'yes' };
+    case 'admin.me': return { ok: true, email: 'owner@example.com', name: 'Ruchika', store_name: s.store_name, face_check: s.face_check === 'yes' };
     case 'admin.day': {
       const date = req.date || ist.date;
       const punches = day(date);
@@ -103,8 +103,8 @@ export async function mockCall(req) {
           return {
             emp_id: e.emp_id, name: e.name, active: e.active === 'yes',
             summary: L.summarizeDay_(mine, { shiftStart: e.shift_start, graceMin: s.late_grace_min, dayOver }),
-            punches: mine.map((p) => ({ id: p.id, time: L.fmt12_(p.ts), hm: L.istParts_(p.ts).hm, action: p.action, status: p.status, method: p.method, source: p.source, edited: p.edited, face_distance: p.face_distance, distance_m: p.distance_m, selfie_id: p.selfie_id || '', reason: p.reason || '' })),
-            attempts: db.attempts.filter((a) => a.date === date && a.emp_id === e.emp_id).map((a) => ({ id: a.attempt_id, time: L.fmt12_(Number(a.ts_ms)), action: a.action, reason: a.reason, distance_m: a.distance_m, selfie_id: a.selfie_id, face_distance: a.face_distance }))
+            punches: mine.map((p) => ({ id: p.id, ts: p.ts, time: L.fmt12_(p.ts), hm: L.istParts_(p.ts).hm, action: p.action, status: p.status, method: p.method, source: p.source, edited: p.edited, face_distance: p.face_distance, distance_m: p.distance_m, selfie_id: p.selfie_id || '', reason: p.reason || '' })),
+            attempts: db.attempts.filter((a) => a.date === date && a.emp_id === e.emp_id).map((a) => ({ id: a.attempt_id, ts: Number(a.ts_ms), time: L.fmt12_(Number(a.ts_ms)), action: a.action, reason: a.reason, distance_m: a.distance_m, selfie_id: a.selfie_id, face_distance: a.face_distance }))
           };
         }),
         corrections: db.corrections.filter((c) => c.date === date).map((c) => ({ ...c, id: c.corr_id, by: c.by_email }))
@@ -113,6 +113,12 @@ export async function mockCall(req) {
     case 'admin.pending': {
       const decided = new Set(db.corrections.filter((c) => ['APPROVE', 'REJECT', 'VOID'].includes(c.type)).map((c) => c.ref_log_id));
       return { ok: true, pending: db.log.filter((r) => r.status === 'PENDING' && !decided.has(r.log_id)).map((r) => ({ id: r.log_id, date: r.date, date_text: L.fmtDateLong_(r.date), time: L.fmt12_(Number(r.ts_ms)), emp_id: r.emp_id, name: r.name, action: r.action, face_distance: r.face_distance, distance_m: r.distance_m, selfie_id: r.selfie_id })) };
+    }
+    case 'admin.badges': {
+      const decided = new Set(db.corrections.filter((c) => ['APPROVE', 'REJECT', 'VOID'].includes(c.type)).map((c) => c.ref_log_id));
+      const since = Number(req.since) || 0;
+      return { ok: true, pending: db.log.filter((r) => r.status === 'PENDING' && !decided.has(r.log_id)).length,
+        new_activity: db.log.filter((r) => r.date === ist.date && Number(r.ts_ms) > since).length, server_time: now };
     }
     case 'admin.range': {
       const days = [];

@@ -127,7 +127,7 @@ function verifyChain_(name) {
 /* ---------- Settings (owner-visible key/value tab) ---------- */
 
 var SETTING_DEFAULTS = [
-  ['store_name', 'Saativkei', 'Shown on the punch screen and in messages'],
+  ['store_name', 'Saatvikei', 'Shown on the punch screen and in messages'],
   ['open_time', '09:30', 'Punching opens (24h HH:mm, India time)'],
   ['close_time', '21:30', 'Punching closes and the day summary is sent'],
   ['closed_weekdays', 'Tue', 'Days with no punching, comma separated (Sun,Mon,Tue,Wed,Thu,Fri,Sat)'],

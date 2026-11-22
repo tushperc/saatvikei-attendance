@@ -60,3 +60,21 @@ export function getPosition(timeout = 12000) {
     );
   });
 }
+
+/** Fades out the logo splash (kept on screen at least ~0.9 s so it doesn't flash). */
+const splashStart = performance.now();
+export function hideSplash() {
+  const el = document.getElementById('splash');
+  if (!el || el.classList.contains('out')) return;
+  const wait = Math.max(0, 900 - (performance.now() - splashStart));
+  setTimeout(() => { el.classList.add('out'); setTimeout(() => el.remove(), 600); }, wait);
+}
+
+/** "12m ago" style text. */
+export function ago(ms) {
+  const m = Math.round((Date.now() - ms) / 60000);
+  if (m < 1) return 'just now';
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  return h < 24 ? `${h}h ${m % 60}m ago` : `${Math.floor(h / 24)}d ago`;
+}

@@ -1,6 +1,6 @@
 // Caches the face-check models (about 7 MB) so the punch screen opens fast.
 // App files use network-first so updates show up straight away. API calls are never cached.
-const CACHE = 'saativkei-v2';
+const CACHE = 'saatvikei-v3';
 
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', (e) => e.waitUntil(

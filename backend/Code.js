@@ -13,6 +13,7 @@ function routes_() {
     'admin.me': adminMe_,
     'admin.day': adminDay_,
     'admin.pending': adminPending_,
+    'admin.badges': adminBadges_,
     'admin.range': adminRange_,
     'admin.photo': adminPhoto_,
     'admin.correct': adminCorrect_,
