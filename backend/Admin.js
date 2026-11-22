@@ -201,8 +201,9 @@ function adminSaveEmployee_(req) {
   if (!name) throw apiError_('BAD_REQUEST', 'Name is required.');
   ['shift_start', 'shift_end'].forEach(function (k) { if (e[k] && hmToMin_(e[k]) == null) throw apiError_('BAD_REQUEST', 'Shift times must look like 10:00'); });
   return withLock_(function () {
-    var all = employees_();
-    var row = e.emp_id ? all.filter(function (x) { return x.emp_id === e.emp_id; })[0] : null;
+    ensureHeaders_(SHEET.EMP);
+    var all = employees_(true);
+    var row = e.emp_id ? all.filter(function (x) { return x.emp_id === e.emp_id && !x.removed_on; })[0] : null;
     var fields = ['name', 'role', 'phone', 'monthly_salary', 'shift_start', 'shift_end', 'active', 'notes', 'telegram_receipts'];
     if (row) {
       var changes = [];
@@ -223,6 +224,45 @@ function adminSaveEmployee_(req) {
     audit_(email, 'EMPLOYEE_ADDED', { emp_id: id, name: name });
     return { ok: true, emp_id: id };
   });
+}
+
+/**
+ * Removes a staff member (for test or mistaken entries).
+ * - Never punched: the row is deleted completely.
+ * - Has punches: hidden from every screen, but the punch log stays untouched (it is evidence
+ *   and is hash-chained). Their ID is never reused.
+ */
+function adminRemoveEmployee_(req) {
+  var email = requireAdmin_(req);
+  var empId = String(req.emp_id || '');
+  var result = withLock_(function () {
+    ensureHeaders_(SHEET.EMP);
+    var emp = employees_(true).filter(function (x) { return x.emp_id === empId && !x.removed_on; })[0];
+    if (!emp) throw apiError_('BAD_REQUEST', 'Staff member not found.');
+    var used = readObjects_(SHEET.LOG).some(function (r) { return r.emp_id === empId; }) ||
+      readObjects_(SHEET.ATT).some(function (r) { return r.emp_id === empId; }) ||
+      readObjects_(SHEET.CORR).some(function (r) { return r.emp_id === empId; });
+    var face = readObjects_(SHEET.FACES).filter(function (f) { return f.emp_id === empId; })[0];
+    if (face) sheet_(SHEET.FACES).deleteRow(face._row);
+    var mode;
+    if (used) {
+      emp.active = 'no';
+      emp.removed_on = istParts_(Date.now()).date;
+      emp.face_enrolled_on = '';
+      emp.telegram_chat_id = '';
+      emp.telegram_receipts = 'no';
+      updateObject_(SHEET.EMP, emp._row, emp);
+      mode = 'hidden';
+    } else {
+      sheet_(SHEET.EMP).deleteRow(emp._row);
+      mode = 'deleted';
+    }
+    audit_(email, 'EMPLOYEE_REMOVED', { emp_id: empId, name: emp.name, mode: mode });
+    return { name: emp.name, mode: mode };
+  });
+  notifyOwners_('🗑 ' + email + ' removed ' + result.name + ' from staff.' +
+    (result.mode === 'hidden' ? '\nTheir past punches stay in the records sheet as proof but are hidden from the app.' : ''));
+  return { ok: true, mode: result.mode };
 }
 
 function adminEnrollFace_(req) {

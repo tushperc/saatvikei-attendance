@@ -76,7 +76,7 @@ export async function mockCall(req) {
       const punches = day(ist.date);
       return {
         ok: true, store_name: s.store_name, device_name: 'Demo phone', window: L.punchWindow_(now, s), face_retries: 3, face_check: s.face_check === 'yes',
-        employees: db.employees.filter((e) => e.active === 'yes').map((e) => {
+        employees: db.employees.filter((e) => e.active === 'yes' && !e.removed_on).map((e) => {
           const st = L.stateFromPunches_(punches.filter((p) => p.emp_id === e.emp_id));
           return { emp_id: e.emp_id, name: e.name, role: e.role, enrolled: !!e.face_enrolled_on, state: st.state, allowed: st.allowed, last_action: st.last?.action || '', last_time: st.last ? L.fmt12_(st.last.ts) : '' };
         })
@@ -98,7 +98,7 @@ export async function mockCall(req) {
       const dayOver = date < ist.date || (date === ist.date && ist.minutes >= closeMin);
       return {
         ok: true, date, date_text: L.fmtDateLong_(date), window: L.punchWindow_(L.istToMs_(date, '12:00'), s),
-        employees: db.employees.map((e) => {
+        employees: db.employees.filter((e) => !e.removed_on).map((e) => {
           const mine = punches.filter((p) => p.emp_id === e.emp_id);
           return {
             emp_id: e.emp_id, name: e.name, active: e.active === 'yes',
@@ -126,7 +126,7 @@ export async function mockCall(req) {
       for (let ms = L.istToMs_(req.from, '12:00'); L.istParts_(ms).date <= req.to && days.length < 62; ms += 86400000) {
         const p = L.istParts_(ms);
         const punches = day(p.date);
-        days.push({ date: p.date, date_text: L.fmtDateLong_(p.date), closed: closed.includes(p.weekday), employees: db.employees.map((e) => ({ emp_id: e.emp_id, name: e.name, created_on: e.created_on, summary: L.summarizeDay_(punches.filter((x) => x.emp_id === e.emp_id), { shiftStart: e.shift_start, graceMin: s.late_grace_min, dayOver: p.date < ist.date }) })) });
+        days.push({ date: p.date, date_text: L.fmtDateLong_(p.date), closed: closed.includes(p.weekday), employees: db.employees.filter((e) => !e.removed_on).map((e) => ({ emp_id: e.emp_id, name: e.name, created_on: e.created_on, summary: L.summarizeDay_(punches.filter((x) => x.emp_id === e.emp_id), { shiftStart: e.shift_start, graceMin: s.late_grace_min, dayOver: p.date < ist.date }) })) });
       }
       return { ok: true, from: req.from, to: req.to, days };
     }
@@ -138,7 +138,7 @@ export async function mockCall(req) {
       save(db);
       return { ok: true };
     }
-    case 'admin.employees': return { ok: true, employees: db.employees.map((e) => ({ ...e, face_samples: e.face_enrolled_on ? 5 : 0, telegram_linked: !!e.telegram_chat_id })) };
+    case 'admin.employees': return { ok: true, employees: db.employees.filter((e) => !e.removed_on).map((e) => ({ ...e, face_samples: e.face_enrolled_on ? 5 : 0, telegram_linked: !!e.telegram_chat_id })) };
     case 'admin.employee.save': {
       const e = req.employee;
       if (!e.name) return fail('BAD_REQUEST', 'Name is required.');
@@ -146,6 +146,12 @@ export async function mockCall(req) {
       else db.employees.push({ ...e, emp_id: 'E0' + (db.employees.length + 1), active: 'yes', face_enrolled_on: '' });
       save(db);
       return { ok: true };
+    }
+    case 'admin.employee.remove': {
+      const used = db.log.some((r) => r.emp_id === req.emp_id);
+      if (used) Object.assign(db.employees.find((x) => x.emp_id === req.emp_id), { active: 'no', removed_on: ist.date });
+      else db.employees = db.employees.filter((x) => x.emp_id !== req.emp_id);
+      save(db); return { ok: true, mode: used ? 'hidden' : 'deleted' };
     }
     case 'admin.face.enroll': {
       if (!req.consent) return fail('BAD_REQUEST', 'Confirm consent first.');

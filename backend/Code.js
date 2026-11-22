@@ -19,6 +19,7 @@ function routes_() {
     'admin.correct': adminCorrect_,
     'admin.employees': adminEmployees_,
     'admin.employee.save': adminSaveEmployee_,
+    'admin.employee.remove': adminRemoveEmployee_,
     'admin.face.enroll': adminEnrollFace_,
     'admin.face.delete': adminDeleteFace_,
     'admin.devices': adminDevices_,

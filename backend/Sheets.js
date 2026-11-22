@@ -16,7 +16,7 @@ var SHEET = {
 
 var SCHEMA = {
   Employees: ['emp_id', 'name', 'role', 'phone', 'monthly_salary', 'shift_start', 'shift_end', 'active',
-    'face_enrolled_on', 'consent_on', 'telegram_receipts', 'telegram_chat_id', 'created_on', 'notes'],
+    'face_enrolled_on', 'consent_on', 'telegram_receipts', 'telegram_chat_id', 'created_on', 'notes', 'removed_on'],
   RawLog: ['log_id', 'ts_ms', 'date', 'time', 'emp_id', 'name', 'action', 'status', 'method',
     'face_distance', 'device_id', 'device_name', 'lat', 'lng', 'accuracy_m', 'distance_m',
     'phone_time', 'selfie_id', 'note', 'prev_hash', 'row_hash'],
@@ -209,8 +209,21 @@ function audit_(email, what, details) {
   });
 }
 
-function employees_() {
-  return readObjects_(SHEET.EMP);
+/** Staff list. Removed (test or mistaken) entries are hidden unless includeRemoved is true. */
+function employees_(includeRemoved) {
+  var all = readObjects_(SHEET.EMP);
+  return includeRemoved ? all : all.filter(function (e) { return !e.removed_on; });
+}
+
+/** Makes sure row 1 of a tab has every column name in SCHEMA (for columns added after setup). */
+function ensureHeaders_(name) {
+  var sh = sheet_(name);
+  var headers = SCHEMA[name];
+  var current = sh.getRange(1, 1, 1, headers.length).getValues()[0].map(String);
+  if (current.join('|') !== headers.join('|')) {
+    if (sh.getMaxColumns() < headers.length) sh.insertColumnsAfter(sh.getMaxColumns(), headers.length - sh.getMaxColumns());
+    sh.getRange(1, 1, 1, headers.length).setValues([headers]).setFontWeight('bold').setBackground('#f1efe8');
+  }
 }
 
 function employeeById_(empId) {

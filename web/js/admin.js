@@ -579,7 +579,10 @@ function editEmployee(e) {
           : `<button class="btn block" type="button" id="tglink">${I.telegram} Create Telegram link</button><div id="tgout"></div>`}
         <div class="divider"><i class="diamond"></i><span>Face check (optional${me.face_check ? '' : ', off'})</span><i class="diamond"></i></div>
         <p class="muted small" style="margin:0">${me.face_check ? 'Each punch photo is matched against this face.' : 'Face check is off, so only a photo is taken at each punch. You can enrol now and turn it on later in Setup.'}</p>
-        <button class="btn block" type="button" id="enrol">${I.user} ${e.face_enrolled_on ? 'Re-enrol face' : 'Enrol face'}</button>` : ''}
+        <button class="btn block" type="button" id="enrol">${I.user} ${e.face_enrolled_on ? 'Re-enrol face' : 'Enrol face'}</button>
+        <div class="divider"><i class="diamond"></i><span>Remove</span><i class="diamond"></i></div>
+        <p class="muted small" style="margin:0">For test or mistaken entries. If someone has left the job, turn off <b>Active</b> above instead, which keeps them in Records for salary.</p>
+        <button class="btn block" type="button" id="remove" style="color:var(--bad)">${I.trash} Remove ${esc(e.name)}</button>` : ''}
       <button class="btn ghost block" type="button" data-close>Close</button>
     </form>`);
   $('#ef', s.el).onsubmit = async (ev) => {
@@ -592,6 +595,7 @@ function editEmployee(e) {
   };
   if (isNew) return;
   $('#enrol', s.el).onclick = () => { s.close(); enrolFace(e); };
+  $('#remove', s.el).onclick = () => { s.close(); confirmRemove(e); };
   $('#tgoff', s.el)?.addEventListener('click', async () => { await api('admin.telegram.unlink', { emp_id: e.emp_id }); toast('Receipts turned off'); s.close(); viewStaff(); });
   $('#tglink', s.el)?.addEventListener('click', async () => {
     try {
@@ -604,6 +608,28 @@ function editEmployee(e) {
       $('#chk', s.el).onclick = async () => { const c = await api('admin.telegram.check'); toast(c.linked.length ? 'Connected' : 'Not yet. Ask them to press Start in Telegram.'); if (c.linked.length) { s.close(); viewStaff(); } };
     } catch (err) { toast(err.message, 4000); }
   });
+}
+
+function confirmRemove(e) {
+  const s = sheet(`
+    <div class="stack">
+      <div class="center"><div class="avatar" style="margin:0 auto 10px;color:var(--bad)">${I.trash}</div><h2>Remove ${esc(e.name)}?</h2></div>
+      <p class="muted small center" style="margin:0">They will disappear from the punch phone, Today, Records and Staff.<br>
+        If they ever punched, those punches stay in the Google Sheet as proof (they can't be erased), but are hidden here.</p>
+      <label class="field"><span>Type <b>${esc(e.name.split(' ')[0])}</b> to confirm</span><input class="input" id="confirmname" autocomplete="off"></label>
+      <button class="btn bad block big" id="yes" disabled>${I.trash} Remove</button>
+      <button class="btn ghost block" data-close>Cancel</button>
+    </div>`);
+  const want = e.name.split(' ')[0].toLowerCase();
+  $('#confirmname', s.el).oninput = (ev) => { $('#yes', s.el).disabled = ev.target.value.trim().toLowerCase() !== want; };
+  $('#yes', s.el).onclick = async () => {
+    $('#yes', s.el).disabled = true;
+    try {
+      const r = await api('admin.employee.remove', { emp_id: e.emp_id });
+      toast(r.mode === 'deleted' ? `${e.name} removed` : `${e.name} removed (past punches kept as proof)`, 4000);
+      s.close(); viewStaff();
+    } catch (err) { toast(err.message, 4000); $('#yes', s.el).disabled = false; }
+  };
 }
 
 function enrolFace(e) {
