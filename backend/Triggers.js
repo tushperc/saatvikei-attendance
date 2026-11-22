@@ -63,6 +63,7 @@ function recomputeDaily_(date) {
   var sh = sheet_(SHEET.DAILY);
   var existing = readObjects_(SHEET.DAILY);
   for (var i = existing.length - 1; i >= 0; i--) if (existing[i].date === date) sh.deleteRow(existing[i]._row);
+  bust_(SHEET.DAILY);
   var punches = dayPunches_(date);
   employees_().forEach(function (e) {
     var mine = punches.filter(function (p) { return p.emp_id === e.emp_id; });

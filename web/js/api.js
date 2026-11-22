@@ -1,5 +1,4 @@
 // Talks to the Apps Script backend. Sends text/plain so the browser skips the CORS preflight.
-import { mockCall } from './mock.js';
 
 export class ApiError extends Error {
   constructor(code, message) { super(message); this.code = code; }
@@ -11,6 +10,7 @@ export async function call(action, body = {}, { timeoutMs = 45000 } = {}) {
   const payload = { ...body, action };
   let data;
   if (isMock()) {
+    const { mockCall } = await import('./mock.js');
     data = await mockCall(payload);
   } else {
     const ctrl = new AbortController();

@@ -75,8 +75,9 @@ function adminDay_(req) {
   requireAdmin_(req);
   var date = String(req.date || istParts_(Date.now()).date);
   var s = settings_();
-  var rows = dayReport_(date, readObjects_(SHEET.LOG), readObjects_(SHEET.CORR), readObjects_(SHEET.ATT), employees_(), s);
-  var corrections = readObjects_(SHEET.CORR).filter(function (c) { return c.date === date; }).map(function (c) {
+  var corrAll = readSince_(SHEET.CORR, date);
+  var rows = dayReport_(date, readSince_(SHEET.LOG, date), corrAll, readSince_(SHEET.ATT, date), employees_(), s);
+  var corrections = corrAll.filter(function (c) { return c.date === date; }).map(function (c) {
     return { id: c.corr_id, time: c.time, emp_id: c.emp_id, name: c.name, type: c.type, action: c.action, old_value: c.old_value, new_value: c.new_value, reason: c.reason, by: c.by_email };
   });
   return { ok: true, date: date, date_text: fmtDateLong_(date), window: punchWindow_(istToMs_(date, '12:00'), s), employees: rows, corrections: corrections };
@@ -112,7 +113,7 @@ function adminRange_(req) {
   var from = String(req.from), to = String(req.to);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(from) || !/^\d{4}-\d{2}-\d{2}$/.test(to) || from > to) throw apiError_('BAD_REQUEST', 'Pick a valid date range.');
   var s = settings_();
-  var raw = readObjects_(SHEET.LOG), corr = readObjects_(SHEET.CORR), emps = employees_();
+  var raw = readSince_(SHEET.LOG, from), corr = readSince_(SHEET.CORR, from), emps = employees_();
   var closed = String(s.closed_weekdays || '').split(',').map(function (x) { return x.trim(); });
   var days = [];
   for (var ms = istToMs_(from, '12:00'); istParts_(ms).date <= to; ms += 86400000) {
@@ -243,7 +244,7 @@ function adminRemoveEmployee_(req) {
       readObjects_(SHEET.ATT).some(function (r) { return r.emp_id === empId; }) ||
       readObjects_(SHEET.CORR).some(function (r) { return r.emp_id === empId; });
     var face = readObjects_(SHEET.FACES).filter(function (f) { return f.emp_id === empId; })[0];
-    if (face) sheet_(SHEET.FACES).deleteRow(face._row);
+    if (face) deleteRow_(SHEET.FACES, face._row);
     var mode;
     if (used) {
       emp.active = 'no';
@@ -254,7 +255,7 @@ function adminRemoveEmployee_(req) {
       updateObject_(SHEET.EMP, emp._row, emp);
       mode = 'hidden';
     } else {
-      sheet_(SHEET.EMP).deleteRow(emp._row);
+      deleteRow_(SHEET.EMP, emp._row);
       mode = 'deleted';
     }
     audit_(email, 'EMPLOYEE_REMOVED', { emp_id: empId, name: emp.name, mode: mode });
@@ -301,7 +302,7 @@ function adminDeleteFace_(req) {
   if (!emp) throw apiError_('BAD_REQUEST', 'Employee not found.');
   withLock_(function () {
     var f = readObjects_(SHEET.FACES).filter(function (x) { return x.emp_id === emp.emp_id; })[0];
-    if (f) sheet_(SHEET.FACES).deleteRow(f._row);
+    if (f) deleteRow_(SHEET.FACES, f._row);
     var fresh = employeeById_(emp.emp_id);
     fresh.face_enrolled_on = '';
     updateObject_(SHEET.EMP, fresh._row, fresh);

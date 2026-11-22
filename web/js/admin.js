@@ -2,7 +2,7 @@
 // only emails on the admin list get in.
 import { call, ApiError, isMock } from './api.js';
 import * as face from './face.js';
-import { $, $$, esc, initials, sheet, toast, ACTION_LABEL, ACTION_PAST, istNow, getPosition, hideSplash, ago } from './ui.js';
+import { $, $$, esc, initials, sheet, toast, ACTION_LABEL, ACTION_PAST, istNow, getPosition, hideSplash, ago, snap } from './ui.js';
 import { I, LOGO_URL, PHOTOS } from './icons.js';
 
 const app = $('#app');
@@ -33,6 +33,7 @@ async function api(action, body = {}) {
   } catch (e) {
     if (e instanceof ApiError && (e.code === 'AUTH_REQUIRED' || e.code === 'NOT_ADMIN')) {
       session.token = '';
+      try { sessionStorage.removeItem('saatvikei_me'); } catch { /* ignore */ }
       renderSignIn(e.message);
     }
     throw e;
@@ -143,7 +144,7 @@ function bindHead() {
   if (b) b.onclick = () => {
     const s = sheet(`<div class="stack"><div class="row"><div class="avatar">${esc(initials(me.name || me.email))}</div><div class="grow"><b>${esc(me.name || '')}</b><div class="muted small">${esc(me.email)}</div></div></div>
       <button class="btn block" id="so">${I.logout} Sign out</button><button class="btn ghost block" data-close>Close</button></div>`);
-    $('#so', s.el).onclick = () => { session.token = ''; window.google?.accounts?.id?.disableAutoSelect(); s.close(); renderSignIn(); };
+    $('#so', s.el).onclick = () => { session.token = ''; try { sessionStorage.removeItem('saatvikei_me'); } catch { /* ignore */ } window.google?.accounts?.id?.disableAutoSelect(); s.close(); renderSignIn(); };
   };
 }
 
@@ -167,10 +168,19 @@ const STATUS = { ABSENT: ['', 'Not in'], IN: ['ok', 'In store'], ON_BREAK: ['war
 async function viewToday(dateArg, { quiet = false } = {}) {
   const today = istNow().date;
   const date = dateArg || today;
-  if (!quiet) skeleton();
   const lastSeen = seen.get();
+  const snapKey = 'day_' + date;
+  const cachedDay = snap.get(snapKey, 2 * 3600e3);
+  if (!quiet) { if (cachedDay) renderDay(cachedDay, date, dateArg, lastSeen, true); else skeleton(); }
   const r = await api('admin.day', { date });
-  if (date === today) { seen.set(Date.now()); badges.new_activity = 0; renderTabs(); }
+  snap.set(snapKey, r);
+  if (currentView !== 'today') return;
+  renderDay(r, date, dateArg, lastSeen, false);
+}
+
+function renderDay(r, date, dateArg, lastSeen, fromCache) {
+  const today = istNow().date;
+  if (date === today && !fromCache) { seen.set(Date.now()); badges.new_activity = 0; renderTabs(); }
 
   const emps = r.employees;
   const missing = (e) => e.summary.flags.includes('MISSING_OUT');
@@ -815,8 +825,22 @@ async function viewSetup() {
 /* ================= Boot ================= */
 async function start() {
   if (!session.token) return renderSignIn();
+  // Known user on this device: open the app immediately and confirm the sign-in in the background.
+  let cachedMe = null;
+  try { cachedMe = JSON.parse(sessionStorage.getItem('saatvikei_me') || 'null'); } catch { /* ignore */ }
+  if (cachedMe) {
+    me = cachedMe;
+    hideSplash();
+    route();
+    api('admin.me').then((m) => { me = m; try { sessionStorage.setItem('saatvikei_me', JSON.stringify(m)); } catch { /* ignore */ } }).catch(() => {});
+    refreshBadges();
+    clearInterval(badgeTimer);
+    badgeTimer = setInterval(() => { if (document.visibilityState === 'visible') refreshBadges(); }, 45000);
+    return;
+  }
   try {
     me = await api('admin.me');
+    try { sessionStorage.setItem('saatvikei_me', JSON.stringify(me)); } catch { /* ignore */ }
   } catch (e) {
     hideSplash();
     if (!(e instanceof ApiError && (e.code === 'AUTH_REQUIRED' || e.code === 'NOT_ADMIN'))) app.innerHTML = `<div class="banner bad">${I.alert}<span>${esc(e.message)}</span></div>`;

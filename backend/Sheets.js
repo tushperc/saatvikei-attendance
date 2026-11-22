@@ -55,13 +55,57 @@ function rowToObj_(headers, row, rowIndex) {
   return o;
 }
 
-function readObjects_(name) {
+/*
+ * Speed: small, rarely-changing tabs (staff, phones, settings) are kept in Apps Script's
+ * cache for 2 minutes, and every tab is read at most once per request. Any write through
+ * these helpers clears the cached copy straight away.
+ */
+var CACHED_TABLES = ['Employees', 'Devices', 'Settings'];
+var _memo = {};
+
+function cacheKey_(name) { return 'tbl_v2_' + name; }
+
+function bust_(name) {
+  delete _memo[name];
+  if (CACHED_TABLES.indexOf(name) >= 0) { try { CacheService.getScriptCache().remove(cacheKey_(name)); } catch (e) { /* ignore */ } }
+  if (name === SHEET.SET) _settingsCache = null;
+}
+
+function readValues_(name) {
   var sh = sheet_(name);
   var last = sh.getLastRow();
-  var headers = SCHEMA[name];
   if (last < 2) return [];
-  var values = sh.getRange(2, 1, last - 1, headers.length).getValues();
-  return values.map(function (r, i) { return rowToObj_(headers, r, i + 2); });
+  return sh.getRange(2, 1, last - 1, SCHEMA[name].length).getValues().map(function (r) {
+    return r.map(function (v) { return v == null ? '' : String(v); });
+  });
+}
+
+function readObjects_(name) {
+  if (!_memo[name]) {
+    var values = null;
+    var cached = CACHED_TABLES.indexOf(name) >= 0;
+    if (cached) {
+      try { var hit = CacheService.getScriptCache().get(cacheKey_(name)); if (hit) values = JSON.parse(hit); } catch (e) { values = null; }
+    }
+    if (!values) {
+      values = readValues_(name);
+      if (cached) { try { CacheService.getScriptCache().put(cacheKey_(name), JSON.stringify(values), 120); } catch (e) { /* too big: skip cache */ } }
+    }
+    _memo[name] = values;
+  }
+  var headers = SCHEMA[name];
+  return _memo[name].map(function (r, i) { return rowToObj_(headers, r, i + 2); });
+}
+
+/**
+ * Rows that could matter for a given date, without reading years of history:
+ * reads the newest rows and only falls back to the whole tab when the date is older than that.
+ */
+function readSince_(name, date) {
+  var rows = readLastObjects_(name, 1500);
+  if (!rows.length || rows[0]._row <= 2) return rows;
+  var oldest = istParts_(Number(rows[0].ts_ms) || 0).date;
+  return oldest <= date ? rows : readObjects_(name);
 }
 
 /** Last n rows only (recent punches are always at the bottom). */
@@ -87,10 +131,17 @@ function writeRow_(sh, rowIndex, row) {
 function appendObject_(name, obj) {
   var sh = sheet_(name);
   writeRow_(sh, sh.getLastRow() + 1, objToRow_(name, obj));
+  bust_(name);
 }
 
 function updateObject_(name, rowIndex, obj) {
   writeRow_(sheet_(name), rowIndex, objToRow_(name, obj));
+  bust_(name);
+}
+
+function deleteRow_(name, rowIndex) {
+  sheet_(name).deleteRow(rowIndex);
+  bust_(name);
 }
 
 function canonical_(name, obj) {
@@ -108,6 +159,7 @@ function appendChained_(name, obj) {
   obj.prev_hash = last > 1 ? String(sh.getRange(last, headers.indexOf('row_hash') + 1).getValue()) : 'GENESIS';
   obj.row_hash = sha256Hex_(canonical_(name, obj));
   writeRow_(sh, last + 1, objToRow_(name, obj));
+  bust_(name);
   return obj;
 }
 

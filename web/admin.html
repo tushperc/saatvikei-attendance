@@ -10,22 +10,30 @@
   <link rel="manifest" href="admin.webmanifest">
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icons/icon-180.png">
+  <link rel="preconnect" href="https://script.google.com" crossorigin>
+  <link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
+  <link rel="preconnect" href="https://saatvikei.com">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&family=Cormorant+Garamond:ital,wght@1,500;1,600&display=swap" media="print" onload="this.media='all'">
-  <link rel="stylesheet" href="css/app.css?v=4">
+  <link rel="stylesheet" href="css/app.css?v=5">
+  <link rel="modulepreload" href="js/admin.js?v=5">
+  <link rel="modulepreload" href="js/api.js">
+  <link rel="modulepreload" href="js/ui.js">
+  <link rel="modulepreload" href="js/icons.js">
+  <link rel="modulepreload" href="js/face.js">
 </head>
 <body>
   <div class="splash" id="splash">
     <div class="splash-inner">
-      <img src="https://saatvikei.com/cdn/shop/files/Horizontal_Black_R.png_new_1.png?v=1739510639&width=600" alt="Saatvikei" onerror="this.outerHTML='<div class=&quot;brand-fallback&quot;>Saatvikei</div>'">
+      <img fetchpriority="high" src="https://saatvikei.com/cdn/shop/files/Horizontal_Black_R.png_new_1.png?v=1739510639&width=600" alt="Saatvikei" onerror="this.outerHTML='<div class=&quot;brand-fallback&quot;>Saatvikei</div>'">
       <div class="tag">Owner</div>
       <div class="bar"></div>
     </div>
   </div>
   <div class="app admin-shell" id="app"></div>
   <nav class="tabbar" id="tabbar" hidden></nav>
-  <script src="js/config.js?v=4"></script>
-  <script type="module" src="js/admin.js?v=4"></script>
+  <script src="js/config.js?v=5"></script>
+  <script type="module" src="js/admin.js?v=5"></script>
 </body>
 </html>

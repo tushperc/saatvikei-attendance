@@ -66,7 +66,7 @@ const splashStart = performance.now();
 export function hideSplash() {
   const el = document.getElementById('splash');
   if (!el || el.classList.contains('out')) return;
-  const wait = Math.max(0, 900 - (performance.now() - splashStart));
+  const wait = Math.max(0, 350 - (performance.now() - splashStart));
   setTimeout(() => { el.classList.add('out'); setTimeout(() => el.remove(), 600); }, wait);
 }
 
@@ -78,3 +78,11 @@ export function ago(ms) {
   const h = Math.floor(m / 60);
   return h < 24 ? `${h}h ${m % 60}m ago` : `${Math.floor(h / 24)}d ago`;
 }
+
+/** Tiny "last known screen" cache so screens can show instantly, then refresh. */
+export const snap = {
+  get(key, maxAgeMs = 12 * 3600e3) {
+    try { const v = JSON.parse(localStorage.getItem('snap_' + key)); return v && Date.now() - v.t < maxAgeMs ? v.d : null; } catch { return null; }
+  },
+  set(key, data) { try { localStorage.setItem('snap_' + key, JSON.stringify({ t: Date.now(), d: data })); } catch { /* full or private */ } }
+};
