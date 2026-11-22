@@ -1,4 +1,4 @@
-# Saativkei Attendance
+# Saatvikei Attendance
 
 A free attendance system for a small store:
 
@@ -39,7 +39,7 @@ node --test tests/
 There are 6 one-time steps, about 30–40 minutes in total.
 
 ### 1. Create the Telegram bot (5 min, on your phone)
-1. In Telegram, search **@BotFather**, send `/newbot`, and pick a name such as *Saativkei Attendance*.
+1. In Telegram, search **@BotFather**, send `/newbot`, and pick a name such as *Saatvikei Attendance*.
 2. Pick a username ending in `bot`.
 3. Copy the **token** it gives you. You'll paste it into the owner app in step 6. Don't share it anywhere else.
 
@@ -56,7 +56,7 @@ npx @google/clasp@3.4.1 login
 ```
 
 ```bash
-npx @google/clasp@3.4.1 create-script --type standalone --title "Saativkei Attendance" --rootDir .
+npx @google/clasp@3.4.1 create-script --type standalone --title "Saatvikei Attendance" --rootDir .
 ```
 
 ```bash
@@ -64,7 +64,7 @@ npx @google/clasp@3.4.1 push --force
 ```
 
 3. Open the project (`npx @google/clasp@3.4.1 open-script`), choose the **setup** function, and press **Run**.
-4. Approve the permissions. Google warns that the app is "unverified" because it's your own script: click **Advanced → Go to Saativkei Attendance**.
+4. Approve the permissions. Google warns that the app is "unverified" because it's your own script: click **Advanced → Go to Saatvikei Attendance**.
 5. The log prints links to the new **Sheet** and **Drive folder**.
 
 ### 3. Deploy the backend as a web app
@@ -77,10 +77,10 @@ In the Apps Script editor:
 When you change the backend later: `clasp push`, then **Deploy → Manage deployments → edit → New version**. This keeps the same URL.
 
 ### 4. Create the Google sign-in client (for the owner app)
-1. Go to https://console.cloud.google.com and create a project, for example *saativkei-attendance*.
+1. Go to https://console.cloud.google.com and create a project, for example *saatvikei-attendance*.
 2. Go to **APIs & Services → OAuth consent screen**.
    - Choose **External**.
-   - App name: *Saativkei Owner*.
+   - App name: *Saatvikei Owner*.
    - Add your email.
    - Scopes: none extra.
    - Add yourself and the owner as **test users**.

@@ -5,7 +5,13 @@ import * as face from './face.js';
 import { $, $$, esc, initials, toast, ACTION_PAST, fmtDay, getPosition, hideSplash } from './ui.js';
 import { I, LOGO_URL } from './icons.js';
 
-const TOKEN_KEY = 'saativkei_device_token';
+const TOKEN_KEY = 'saatvikei_device_token';
+// One-time move from the earlier (misspelt) key so already-paired phones stay paired.
+try {
+  const old = localStorage.getItem('saativkei_device_token');
+  if (old && !localStorage.getItem(TOKEN_KEY)) localStorage.setItem(TOKEN_KEY, old);
+  localStorage.removeItem('saativkei_device_token');
+} catch { /* private mode */ }
 const app = $('#app');
 let state = { init: null, query: '' };
 let refreshTimer = null;

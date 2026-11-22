@@ -1,6 +1,6 @@
 // Demo backend that runs in the browser, so the apps can be tried without Google.
 // Only used when APP_CONFIG.API_URL === 'mock'. It reuses the real backend rules (logic.js).
-const KEY = 'saativkei_mock_db_v1';
+const KEY = 'saatvikei_mock_db_v1';
 let L = null;
 
 async function logic() {
@@ -155,10 +155,10 @@ export async function mockCall(req) {
     case 'admin.devices': return { ok: true, devices: db.devices.map((d) => ({ ...d, active: d.active === 'yes' })) };
     case 'admin.device.code': return { ok: true, code: String(Math.floor(100000 + Math.random() * 900000)), expires_min: 15 };
     case 'admin.device.revoke': db.devices.find((d) => d.device_id === req.device_id).active = 'no'; save(db); return { ok: true };
-    case 'admin.settings': return { ok: true, me: 'owner@example.com', settings: s, descriptions: {}, telegram: { configured: true, bot: 'SaativkeiAttendanceBot', chats: db.chats }, admins: db.admins, links: { sheet: '#', folder: '#' } };
+    case 'admin.settings': return { ok: true, me: 'owner@example.com', settings: s, descriptions: {}, telegram: { configured: true, bot: 'SaatvikeiAttendanceBot', chats: db.chats }, admins: db.admins, links: { sheet: '#', folder: '#' } };
     case 'admin.settings.save': Object.assign(db.settings, req.values); save(db); return { ok: true, changes: Object.keys(req.values) };
-    case 'admin.telegram.token': return { ok: true, bot: 'SaativkeiAttendanceBot' };
-    case 'admin.telegram.link': return { ok: true, url: 'https://t.me/SaativkeiAttendanceBot?start=demo', code: 'demo' };
+    case 'admin.telegram.token': return { ok: true, bot: 'SaatvikeiAttendanceBot' };
+    case 'admin.telegram.link': return { ok: true, url: 'https://t.me/SaatvikeiAttendanceBot?start=demo', code: 'demo' };
     case 'admin.telegram.check':
       if (!req.emp_id && !db.chats.length) db.chats.push({ chat_id: 1, email: 'owner@example.com', name: 'Owner', linked_on: ist.date });
       save(db); return { ok: true, linked: [{ type: 'admin', name: 'Owner' }] };

@@ -1,5 +1,5 @@
 /**
- * Saativkei Attendance: backend entry point (Google Apps Script web app).
+ * Saatvikei Attendance: backend entry point (Google Apps Script web app).
  * The front end sends JSON as text/plain POST (avoids CORS preflight).
  */
 
@@ -38,7 +38,7 @@ function routes_() {
 }
 
 function doGet() {
-  return json_({ ok: true, service: 'saativkei-attendance', set_up: !!prop_('SPREADSHEET_ID'), time: Date.now() });
+  return json_({ ok: true, service: 'saatvikei-attendance', set_up: !!prop_('SPREADSHEET_ID'), time: Date.now() });
 }
 
 function doPost(e) {

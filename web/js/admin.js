@@ -7,7 +7,7 @@ import { I, LOGO_URL, PHOTOS } from './icons.js';
 
 const app = $('#app');
 const tabbar = $('#tabbar');
-const TOKEN_KEY = 'saativkei_id_token';
+const TOKEN_KEY = 'saatvikei_id_token';
 const SEEN_KEY = 'saatvikei_seen_ts';
 let me = null;
 let badges = { pending: 0, new_activity: 0 };

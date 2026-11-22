@@ -39,6 +39,7 @@ function withLock_(fn) {
 
 function adminMe_(req) {
   var email = requireAdmin_(req);
+  try { fixBrandName_(); } catch (e) { console.warn(e); }
   var name = CacheService.getScriptCache().get('name_' + email) || '';
   return { ok: true, email: email, name: name, store_name: settings_().store_name, face_check: isYes_(settings_().face_check) };
 }

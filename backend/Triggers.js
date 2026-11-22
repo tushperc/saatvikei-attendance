@@ -5,6 +5,7 @@
  *  - Completes pending Telegram links
  */
 function tick() {
+  try { fixBrandName_(); } catch (e) { console.warn(e); }
   var props = PropertiesService.getScriptProperties();
   var now = Date.now();
   var ist = istParts_(now);
