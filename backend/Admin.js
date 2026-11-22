@@ -16,7 +16,7 @@ function requireAdmin_(req) {
     var res = UrlFetchApp.fetch('https://oauth2.googleapis.com/tokeninfo?id_token=' + encodeURIComponent(tok), { muteHttpExceptions: true });
     if (res.getResponseCode() !== 200) throw apiError_('AUTH_REQUIRED', 'Your sign-in has expired. Please sign in again.');
     var info = JSON.parse(res.getContentText());
-    var clientId = prop_('GOOGLE_CLIENT_ID');
+    var clientId = prop_('GOOGLE_CLIENT_ID') || SETUP_CONFIG.GOOGLE_CLIENT_ID;
     if (!clientId || info.aud !== clientId) throw apiError_('AUTH_REQUIRED', 'This sign-in is not for this app.');
     if (String(info.email_verified) !== 'true') throw apiError_('AUTH_REQUIRED', 'Google email not verified.');
     var secsLeft = Number(info.exp) - Math.floor(Date.now() / 1000);

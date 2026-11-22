@@ -5,7 +5,7 @@
  * Fill these in before the first run (or set them later in Project Settings → Script properties).
  */
 var SETUP_CONFIG = {
-  GOOGLE_CLIENT_ID: '',   // OAuth Web client ID used for owner sign-in (see README step 3)
+  GOOGLE_CLIENT_ID: '492099140026-acdaoal2pefo2a9mpr4dm38hh1f068g9.apps.googleusercontent.com', // OAuth Web client ID used for owner sign-in (see README step 3)
   EXTRA_ADMINS: '',       // comma separated, e.g. 'owner@gmail.com'. The account running setup is always an admin.
   ADMIN_URL: 'https://tushperc.github.io/saativkei-attendance/admin.html' // e.g. 'https://<github-user>.github.io/<repo>/admin.html'
 };
