@@ -3,7 +3,7 @@
 import { call, ApiError, isMock } from './api.js';
 import * as face from './face.js';
 import { $, $$, esc, initials, sheet, toast, ACTION_LABEL, ACTION_PAST, istNow, getPosition, hideSplash, ago, snap, bandMedia } from './ui.js';
-import { I, PHOTOS, BRAND, lockup, signOff } from './icons.js';
+import { I, PHOTOS, BRAND, lockup } from './icons.js';
 
 const app = $('#app');
 const tabbar = $('#tabbar');
@@ -301,7 +301,7 @@ function renderDay(r, date, dateArg, lastSeen, fromCache) {
 
     ${r.corrections.length ? `<div class="section-title"><h3>Changes by owners</h3></div>
       <div class="glass feed">${r.corrections.map((c) => `<div class="feed-item"><div class="act" style="background:var(--info-soft);color:var(--info)">${I.edit}</div><div class="txt"><b>${esc(c.name)}</b> · ${esc(correctionText(c))}<small>${esc(c.reason)} · by ${esc(c.by)}</small></div></div>`).join('')}</div>` : ''}
-    ${signOff('Running Saatvikei,', 'one day at a time')}`;
+    `;
 
   bindHead();
   const strip = $('.week-strip'); if (strip) strip.scrollLeft = strip.scrollWidth;

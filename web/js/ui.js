@@ -92,8 +92,8 @@ export function bandMedia(url) {
   return `<div class="band-bg" style="background-image:url('${url}')"></div><img class="band-fig" src="${url}" alt="" decoding="async">`;
 }
 
-/** Long dates in English and Hindi, India time. */
+/** Long date, India time. */
 export function longDay(d = new Date()) {
   const o = { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Asia/Kolkata' };
-  return { en: d.toLocaleDateString('en-IN', o), hi: d.toLocaleDateString('hi-IN', o) };
+  return { en: d.toLocaleDateString('en-IN', o) };
 }

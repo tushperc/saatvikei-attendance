@@ -1,9 +1,9 @@
 // Punch app for the store manager's phone. It can only punch; it cannot edit or view history.
-// Flow: find your name → tap the button → take a photo. Every line is in English with Hindi below.
+// Flow: find your name → tap the button → take a photo.
 import { call, ApiError, isMock } from './api.js';
 import * as face from './face.js';
 import { $, $$, esc, initials, toast, getPosition, hideSplash, snap, longDay } from './ui.js';
-import { I, PHOTOS, lockup, signOff } from './icons.js';
+import { I, PHOTOS, lockup } from './icons.js';
 
 const TOKEN_KEY = 'saatvikei_device_token';
 // One-time move from the earlier (misspelt) key so already-paired phones stay paired.
@@ -21,40 +21,19 @@ const store = {
   set token(v) { try { v ? localStorage.setItem(TOKEN_KEY, v) : localStorage.removeItem(TOKEN_KEY); } catch { /* private mode */ } }
 };
 
-/** English line with Hindi underneath. */
-const bi = (en, hi) => `<span class="en">${esc(en)}</span><span class="hi" lang="hi">${esc(hi)}</span>`;
-
 const BUTTONS = {
   IN: { en: 'Punch in', cls: 'primary', icon: I.login },
   BREAK_OUT: { en: 'Break', cls: 'gold', icon: I.coffee },
   BREAK_IN: { en: 'Back from break', cls: 'primary', icon: I.back },
   OUT: { en: 'Punch out', cls: 'wine', icon: I.logout }
 };
-const DONE = {
-  IN: ['Punched in', 'पंच इन हो गया'],
-  BREAK_OUT: ['On break', 'ब्रेक शुरू'],
-  BREAK_IN: ['Back from break', 'ब्रेक से वापस'],
-  OUT: ['Punched out', 'पंच आउट हो गया']
-};
+const DONE = { IN: 'Punched in', BREAK_OUT: 'On break', BREAK_IN: 'Back from break', OUT: 'Punched out' };
 const HELLO = {
-  IN: (n) => ['Namaste', 'नमस्ते', `Have a lovely day, ${n}`, `आपका दिन शुभ हो, ${n}`],
-  BREAK_OUT: (n) => ['Enjoy your break', 'ब्रेक का आनंद लें', `See you soon, ${n}`, `जल्दी मिलते हैं, ${n}`],
-  BREAK_IN: (n) => ['Welcome back', 'वापसी पर स्वागत है', `Good to have you back, ${n}`, `आपका फिर से स्वागत है, ${n}`],
-  OUT: (n) => ['Dhanyavaad', 'धन्यवाद', `See you tomorrow, ${n}`, `कल मिलते हैं, ${n}`]
+  IN: (n) => ['Namaste', `Have a lovely day, ${n}`],
+  BREAK_OUT: (n) => ['Enjoy your break', `See you soon, ${n}`],
+  BREAK_IN: (n) => ['Welcome back', `Good to have you back, ${n}`],
+  OUT: (n) => ['Dhanyavaad', `See you tomorrow, ${n}`]
 };
-// Hindi for the server's "not accepted" reasons (the English comes from the server).
-const REASON_HI = {
-  OUTSIDE_HOURS: 'अभी हाज़िरी का समय नहीं है।',
-  AWAY_FROM_STORE: 'यह फ़ोन दुकान से दूर है। हाज़िरी सिर्फ़ दुकान पर लगेगी।',
-  GPS_REQUIRED: 'लोकेशन बंद है। लोकेशन चालू करके फिर कोशिश करें।',
-  GPS_WEAK: 'GPS सिग्नल कमज़ोर है। दरवाज़े के पास जाकर फिर कोशिश करें।',
-  WRONG_ORDER: 'यह पंच अभी नहीं हो सकता।',
-  TOO_SOON: 'अभी-अभी पंच हुआ है। 2 मिनट रुकें।',
-  NO_PHOTO: 'फ़ोटो नहीं ली गई।',
-  NO_FACE: 'फ़ोटो में चेहरा साफ़ नहीं दिखा।',
-  NOT_ENROLLED: 'चेहरा अभी रजिस्टर नहीं है। मालिक से कहें।'
-};
-
 
 function clockHtml() {
   const t = new Date().toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' });
@@ -68,32 +47,33 @@ function to12(hm) {
   return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`;
 }
 
-/* ---------------- Pairing (one time, done with the owner) ---------------- */
+function todayPhoto() { return PHOTOS[new Date().getDate() % PHOTOS.length]; }
+
+/* ---------------- Pairing ---------------- */
 function renderPairing(message = '') {
   hideSplash();
   app.innerHTML = `
     <header class="band p-band welcome">
       <div class="band-bg" style="background-image:url('${todayPhoto()}')"></div>
       ${lockup(true, 'lg')}
-      <h1 class="welcome-title">Welcome<span class="hi" lang="hi">आपका स्वागत है</span></h1>
+      <h1 class="welcome-title">Welcome</h1>
     </header>
     <div class="zari"></div>
     <section class="pair-card">
-      <p class="pair-ask">Ask for the 6-digit code.<span class="hi" lang="hi">6 अंकों का कोड माँगें।</span></p>
+      <p class="pair-ask">Ask for the 6-digit code.</p>
       ${message ? `<div class="banner bad">${I.alert}<span>${esc(message)}</span></div>` : ''}
       <input class="input code-input" id="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="••••••" aria-label="6-digit code">
       <button class="btn primary block big pill" id="pair">Continue</button>
-    </section>
-    ${signOff("Gurugram's most", 'punctual boutique')}`;
+    </section>`;
   const input = $('#code');
   $('#pair').onclick = async () => {
     const code = input.value.replace(/\D/g, '');
-    if (code.length !== 6) return toast('Enter all 6 digits · पूरे 6 अंक डालें');
+    if (code.length !== 6) return toast('Enter all 6 digits');
     $('#pair').disabled = true;
     try {
       const r = await call('device.pair', { code, user_agent: navigator.userAgent });
       store.token = r.device_token;
-      toast('This phone is ready · फ़ोन तैयार है');
+      toast('This phone is ready');
       boot();
     } catch (e) { renderPairing(e.message); }
   };
@@ -132,14 +112,8 @@ function personCard(e, open, i) {
 
 function windowLine(w) {
   if (w.is_open) return `<div class="status-pill open"><i class="live-dot"></i><span>Open until ${esc(to12(w.close_time))}</span></div>`;
-  let hi = 'अभी हाज़िरी बंद है।';
-  if (/closed on/.test(w.reason)) hi = 'आज दुकान की छुट्टी है। हाज़िरी बंद है।';
-  else if (/opens at/.test(w.reason)) hi = `हाज़िरी ${to12(w.open_time)} बजे शुरू होगी।`;
-  else if (/closed at/.test(w.reason)) hi = 'आज की हाज़िरी बंद हो गई है। कल फिर खुलेगी।';
-  return `<div class="status-pill closed">${I.clock}<span>${esc(w.reason)}<span class="hi" lang="hi">${hi}</span></span></div>`;
+  return `<div class="status-pill closed">${I.clock}<span>${esc(w.reason)}</span></div>`;
 }
-
-function todayPhoto() { return PHOTOS[new Date().getDate() % PHOTOS.length]; }
 
 function renderHome() {
   const r = state.init;
@@ -150,26 +124,21 @@ function renderHome() {
       <div class="band-bg" style="background-image:url('${todayPhoto()}')"></div>
       ${lockup(true)}
       <div class="big-clock" id="clock">${clockHtml()}</div>
-      <div class="band-date">${esc(day.en)}<span class="hi" lang="hi">${esc(day.hi)}</span></div>
+      <div class="band-date">${esc(day.en)}</div>
       ${windowLine(w)}
     </header>
     <div class="zari"></div>
     ${isMock() ? '<div class="banner info">Demo mode: sample data, nothing is saved.</div>' : ''}
     <div class="glass search-wrap">
       ${I.search}
-      <input class="search" id="q" type="search" placeholder="Type name · नाम लिखें" autocomplete="off" autocorrect="off" spellcheck="false" value="${esc(state.query)}">
+      <input class="search" id="q" type="search" placeholder="Type your name" autocomplete="off" autocorrect="off" spellcheck="false" value="${esc(state.query)}">
       <button class="search-clear" id="qclear" aria-label="Clear" ${state.query ? '' : 'hidden'}>${I.x}</button>
     </div>
-    <div class="steps">
-      <span>${bi('Find your name', 'नाम ढूँढें')}</span><i></i>
-      <span>${bi('Tap the button', 'बटन दबाएँ')}</span><i></i>
-      <span>${bi('Take a photo', 'फ़ोटो लें')}</span>
-    </div>
+    <div class="steps"><span>Find your name</span><i></i><span>Tap the button</span><i></i><span>Take a photo</span></div>
     <div id="list">
-      ${r.employees.length ? r.employees.map((e, i) => personCard(e, w.is_open, i)).join('') : `<div class="card muted center">${bi('No staff added yet. The owner adds staff in the owner app.', 'अभी कोई स्टाफ़ नहीं जोड़ा गया है।')}</div>`}
-      <div class="card muted center" id="nomatch" hidden>${bi('No one found with that name.', 'इस नाम से कोई नहीं मिला।')}</div>
-    </div>
-    ${signOff("Gurugram's most", 'punctual boutique')}`;
+      ${r.employees.length ? r.employees.map((e, i) => personCard(e, w.is_open, i)).join('') : '<div class="card muted center">No staff added yet.</div>'}
+      <div class="card muted center" id="nomatch" hidden>No one found with that name.</div>
+    </div>`;
   const q = $('#q');
   q.oninput = () => { state.query = q.value; filter(); };
   $('#qclear').onclick = () => { state.query = ''; q.value = ''; filter(); q.focus(); };
@@ -210,10 +179,10 @@ async function startPunch(emp, action, { override = false } = {}) {
       <button class="btn sm pill" data-cancel>${I.x}Cancel</button>
     </div>
     <div class="bottom">
-      <div class="prompt">${bi('Opening camera…', 'कैमरा खुल रहा है…')}</div>
+      <div class="prompt">Opening camera…</div>
       <div class="hint"></div>
       <button class="shutter" data-shoot disabled aria-label="Take photo"><span></span></button>
-      <div class="shutter-label">${bi('Take photo', 'फ़ोटो लें')}</div>
+      <div class="shutter-label">Take photo</div>
     </div>`;
   document.body.appendChild(cam);
   const video = $('video', cam);
@@ -229,12 +198,12 @@ async function startPunch(emp, action, { override = false } = {}) {
     await Promise.all(jobs);
   } catch (e) {
     cleanup();
-    return showResult('bad', I.camera, ['Camera problem', 'कैमरा नहीं खुला'], [e.message || 'Could not open the camera.', 'फ़ोन की सेटिंग में कैमरा की अनुमति दें।'], [{ en: 'Back', hi: 'वापस', fn: backHome }]);
+    return showResult('bad', I.camera, 'Camera problem', e.message || 'Could not open the camera.', [{ en: 'Back', fn: backHome }]);
   }
   if (closed) return;
   if (face.simulated) { video.remove(); cam.insertAdjacentHTML('afterbegin', `<div class="fake-video">${I.user}</div>`); }
-  prompt.innerHTML = bi('Look at the camera', 'कैमरे की ओर देखें');
-  hint.innerHTML = bi('Keep your face inside the frame, then tap the button', 'चेहरा फ्रेम के अंदर रखें, फिर बटन दबाएँ');
+  prompt.textContent = 'Look at the camera';
+  hint.textContent = 'Keep your face inside the frame, then tap the button';
   shoot.disabled = false;
 
   shoot.onclick = async () => {
@@ -246,15 +215,15 @@ async function startPunch(emp, action, { override = false } = {}) {
       photo = shot.photo; descriptor = shot.descriptor;
       if (!descriptor) {
         cleanup();
-        return showResult('bad', I.user, ['Try again', 'फिर कोशिश करें'],
-          shot.faces > 1 ? ['Only the person punching should be in the photo.', 'फ़ोटो में सिर्फ़ पंच करने वाला व्यक्ति हो।'] : ['Face not clear. Face the light and try again.', 'चेहरा साफ़ नहीं दिखा। रोशनी की ओर देखकर फिर कोशिश करें।'],
-          [{ en: 'Try again', hi: 'फिर कोशिश करें', fn: () => startPunch(emp, action, { override }) }, { en: 'Cancel', hi: 'रद्द करें', ghost: true, fn: backHome }]);
+        return showResult('bad', I.user, 'Try again',
+          shot.faces > 1 ? 'Only the person punching should be in the photo.' : 'Face not clear. Face the light and try again.',
+          [{ en: 'Try again', fn: () => startPunch(emp, action, { override }) }, { en: 'Cancel', ghost: true, fn: backHome }]);
       }
     } else {
       photo = face.capturePhoto(video);
     }
     face.stopCamera(video);
-    cam.innerHTML = `<div class="saving"><img src="${photo}" alt=""><div class="spinner"></div><div class="center">${bi('Saving…', 'सेव हो रहा है…')}</div></div>`;
+    cam.innerHTML = `<div class="saving"><img src="${photo}" alt=""><div class="spinner"></div><div class="center">Saving…</div></div>`;
     const gps = await gpsPromise;
     let r;
     try {
@@ -265,8 +234,8 @@ async function startPunch(emp, action, { override = false } = {}) {
     } catch (e) {
       cleanup();
       if (e instanceof ApiError && e.code === 'DEVICE_NOT_PAIRED') { store.token = ''; return renderPairing(e.message); }
-      return showResult('bad', I.alert, ['Not saved', 'सेव नहीं हुआ'], [e.message, 'इंटरनेट चेक करें और फिर कोशिश करें।'],
-        [{ en: 'Try again', hi: 'फिर कोशिश करें', fn: () => startPunch(emp, action, { override }) }, { en: 'Back', hi: 'वापस', ghost: true, fn: backHome }]);
+      return showResult('bad', I.alert, 'Not saved', e.message,
+        [{ en: 'Try again', fn: () => startPunch(emp, action, { override }) }, { en: 'Back', ghost: true, fn: backHome }]);
     }
     cleanup();
     handlePunchResult(emp, action, r, photo);
@@ -276,37 +245,38 @@ async function startPunch(emp, action, { override = false } = {}) {
 function handlePunchResult(emp, action, r, photo) {
   const first = String(r.name || emp.name).split(' ')[0];
   if (r.ok && r.status === 'OK') {
-    const [hEn, hHi, lEn, lHi] = HELLO[action](first);
-    return showResult(action === 'OUT' ? 'bye' : action === 'BREAK_OUT' ? 'brk' : 'ok', I.check, [`${DONE[action][0]} · ${r.time}`, `${DONE[action][1]} · ${r.time}`], [lEn, lHi], [{ en: 'Done', fn: backHome }], 8000, photo, [hEn, hHi]);
+    const [hello, line] = HELLO[action](first);
+    const kind = action === 'OUT' ? 'bye' : action === 'BREAK_OUT' ? 'brk' : 'ok';
+    return showResult(kind, I.check, `${DONE[action]} · ${r.time}`, line, [{ en: 'Done', fn: backHome }], 8000, photo, hello);
   }
   if (r.ok && r.status === 'PENDING') {
-    return showResult('warn', I.clock, ['Sent to owner', 'मालिक को भेजा गया'], [`${r.name}'s punch at ${r.time} is waiting for the owner's approval.`, 'मालिक की मंज़ूरी के बाद यह पंच गिना जाएगा।'], [{ en: 'Done', fn: backHome }], 9000, photo);
+    return showResult('warn', I.clock, 'Sent for approval', `${r.name}'s punch at ${r.time} will count once it is approved.`, [{ en: 'Done', fn: backHome }], 9000, photo);
   }
   const retries = state.init?.face_retries || 3;
   if (r.code === 'FACE_MISMATCH') {
     const n = r.face_fail_count || 1;
-    const buttons = [{ en: 'Try again', hi: 'फिर कोशिश करें', fn: () => startPunch(emp, action) }];
-    if (n >= retries) buttons.unshift({ en: 'Send to owner', hi: 'मालिक को भेजें', fn: () => startPunch(emp, action, { override: true }) });
-    buttons.push({ en: 'Cancel', hi: 'रद्द करें', ghost: true, fn: backHome });
-    return showResult('bad', I.x, ['Face did not match', 'चेहरा मेल नहीं खाया'],
-      n >= retries ? [`Tried ${n} times. You can send it to the owner to approve.`, `${n} बार कोशिश हुई। मंज़ूरी के लिए मालिक को भेज सकते हैं।`] : [`Try again in good light (${n}/${retries}).`, `अच्छी रोशनी में फिर कोशिश करें (${n}/${retries})।`], buttons);
+    const buttons = [{ en: 'Try again', fn: () => startPunch(emp, action) }];
+    if (n >= retries) buttons.unshift({ en: 'Send for approval', fn: () => startPunch(emp, action, { override: true }) });
+    buttons.push({ en: 'Cancel', ghost: true, fn: backHome });
+    return showResult('bad', I.x, 'Face did not match',
+      n >= retries ? `Tried ${n} times. You can send it for approval.` : `Try again in good light (${n}/${retries}).`, buttons);
   }
   const retry = ['GPS_WEAK', 'GPS_REQUIRED', 'NO_FACE', 'NO_PHOTO'].includes(r.code);
   const icon = (r.code && r.code.startsWith('GPS')) || r.code === 'AWAY_FROM_STORE' ? I.pin : I.x;
-  return showResult('bad', icon, ['Not accepted', 'पंच नहीं हुआ'], [r.message, REASON_HI[r.code] || ''], [
-    ...(retry ? [{ en: 'Try again', hi: 'फिर कोशिश करें', fn: () => startPunch(emp, action) }] : []),
-    { en: 'Back', hi: 'वापस', ghost: retry, fn: backHome }
+  return showResult('bad', icon, 'Not accepted', r.message, [
+    ...(retry ? [{ en: 'Try again', fn: () => startPunch(emp, action) }] : []),
+    { en: 'Back', ghost: retry, fn: backHome }
   ]);
 }
 
-/** title/text/hello are [english, hindi] pairs; buttons have en + hi labels. */
+/** Full-screen result after a punch. Stays until Done/✕ or the timer runs out. */
 function showResult(kind, icon, title, text, buttons, autoMs, photo, hello) {
   const el = document.createElement('div');
   el.className = `result ${kind}`;
   el.innerHTML = `
     ${photo ? `<div class="result-photo"><img src="${photo}" alt=""><span class="badge-ico">${icon}</span></div>` : `<div class="big-icon">${icon}</div>`}
-    ${hello ? `<div class="hello">${esc(hello[0])}<span class="hi" lang="hi">${esc(hello[1])}</span></div>` : ''}
-    <h1>${bi(title[0], title[1])}</h1><p>${text[1] ? bi(text[0], text[1]) : esc(text[0])}</p>
+    ${hello ? `<div class="hello">${esc(hello)}</div>` : ''}
+    <h1>${esc(title)}</h1><p>${esc(text)}</p>
     <div class="stack" style="margin-top:22px;width:100%;max-width:320px">${buttons.map((b, i) => `<button class="btn big block pill ${b.ghost ? 'ghost' : ''}" data-i="${i}">${esc(b.en)}</button>`).join('')}</div>
     <button class="result-close" aria-label="Close">${I.x}</button>
     ${autoMs ? `<div class="countdown" style="animation-duration:${autoMs}ms"></div>` : ''}`;
@@ -319,7 +289,7 @@ function showResult(kind, icon, title, text, buttons, autoMs, photo, hello) {
 }
 
 async function backHome() {
-  if (state.init) renderHome();   // instant: show the list right away…
+  if (state.init) renderHome();   // show the list right away, then refresh it
   scheduleRefresh();
   try { await loadInit(); if (!document.querySelector('.camera, .result') && document.activeElement?.id !== 'q') renderHome(); } catch { /* keep old data */ }
 }
@@ -352,8 +322,8 @@ async function boot() {
   } catch (e) {
     hideSplash();
     if (e instanceof ApiError && e.code === 'DEVICE_NOT_PAIRED') { store.token = ''; return renderPairing(e.message); }
-    if (shownCached) { toast('Offline · इंटरनेट नहीं है', 4000); scheduleRefresh(); return; }
-    app.innerHTML = `<div class="card stack center" style="margin-top:40px">${I.alert}<h2>${bi("Can't reach the server", 'सर्वर से जुड़ नहीं पाया')}</h2><p class="muted">${esc(e.message)}</p><button class="btn primary block pill" id="retry">Try again</button></div>`;
+    if (shownCached) { toast('Offline. Showing the last saved list.', 4000); scheduleRefresh(); return; }
+    app.innerHTML = `<div class="card stack center" style="margin-top:40px">${I.alert}<h2>Can't reach the server</h2><p class="muted">${esc(e.message)}</p><button class="btn primary block pill" id="retry">Try again</button></div>`;
     $('#retry').onclick = boot;
   }
 }
