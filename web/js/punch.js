@@ -2,7 +2,7 @@
 // Flow: find your name → tap the button → take a photo.
 import { call, ApiError, isMock } from './api.js';
 import * as face from './face.js';
-import { $, $$, esc, initials, toast, getPosition, hideSplash, snap, longDay } from './ui.js';
+import { $, $$, esc, initials, toast, getPosition, hideSplash, snap, longDay, enablePressFeedback } from './ui.js';
 import { I, PHOTOS, lockup } from './icons.js';
 
 const TOKEN_KEY = 'saatvikei_device_token';
@@ -333,3 +333,4 @@ document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible' && store.token && !document.querySelector('.camera, .result')) loadInit().then(renderHome).catch(() => {});
 });
 boot();
+enablePressFeedback();

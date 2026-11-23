@@ -3,7 +3,7 @@
 //    mixes old and new files. A cached copy is used only when offline.
 //  - Fonts, the logo, product photos and face models: cached after first use and served instantly.
 //  - The Apps Script API, Google sign-in and Telegram are never cached.
-const CACHE = 'saatvikei-v8';
+const CACHE = 'saatvikei-v9';
 
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', (e) => e.waitUntil(

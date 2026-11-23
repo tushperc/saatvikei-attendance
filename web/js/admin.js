@@ -2,7 +2,7 @@
 // only emails on the admin list get in.
 import { call, ApiError, isMock } from './api.js';
 import * as face from './face.js';
-import { $, $$, esc, initials, sheet, toast, ACTION_LABEL, ACTION_PAST, istNow, getPosition, hideSplash, ago, snap, bandMedia } from './ui.js';
+import { $, $$, esc, initials, sheet, toast, ACTION_LABEL, ACTION_PAST, istNow, getPosition, hideSplash, ago, snap, bandMedia, enablePressFeedback } from './ui.js';
 import { I, PHOTOS, BRAND, lockup } from './icons.js';
 
 const app = $('#app');
@@ -903,3 +903,4 @@ window.addEventListener('hashchange', () => { if (me) route(); });
 document.addEventListener('visibilitychange', () => { if (me && document.visibilityState === 'visible') refreshBadges(); });
 if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
 start();
+enablePressFeedback();

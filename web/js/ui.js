@@ -26,11 +26,53 @@ export function sheet(html, { onClose } = {}) {
   const overlay = document.createElement('div');
   overlay.className = 'overlay';
   overlay.innerHTML = `<div class="sheet" role="dialog" aria-modal="true"><div class="grabber"></div>${html}</div>`;
-  const close = () => { overlay.remove(); onClose && onClose(); };
+  const panel = overlay.firstElementChild;
+  // Keep the sheet inside the part of the screen the keyboard leaves visible (iPhone and Android).
+  const vv = window.visualViewport;
+  const fit = () => {
+    if (!vv) return;
+    overlay.style.height = `${vv.height}px`;
+    overlay.style.top = `${vv.offsetTop}px`;
+    // Little room (keyboard open): let the Save button scroll with the form instead of covering it.
+    overlay.classList.toggle('tight', vv.height < 600);
+  };
+  if (vv) { vv.addEventListener('resize', fit); vv.addEventListener('scroll', fit); fit(); }
+  // When a field is tapped, scroll it into the middle of the sheet once the keyboard has opened.
+  panel.addEventListener('focusin', (e) => {
+    if (!e.target.matches('input, select, textarea')) return;
+    setTimeout(() => e.target.scrollIntoView({ block: 'center', behavior: 'smooth' }), 320);
+  });
+  document.documentElement.classList.add('sheet-open');
+  const close = () => {
+    if (vv) { vv.removeEventListener('resize', fit); vv.removeEventListener('scroll', fit); }
+    overlay.remove();
+    if (!document.querySelector('.overlay')) document.documentElement.classList.remove('sheet-open');
+    onClose && onClose();
+  };
   overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
   overlay.querySelectorAll('[data-close]').forEach((b) => b.addEventListener('click', close));
   document.body.appendChild(overlay);
-  return { el: overlay.firstElementChild, close };
+  return { el: panel, close };
+}
+
+/*
+ * Visible press feedback: the tapped button changes colour while touched, and keeps it for a
+ * moment after, so it's obvious (also in screen recordings) which button was pressed.
+ */
+const PRESSABLE = '.btn, .pbtn, .day-pill, .tabbar button, .shutter, .icon-btn, .search-clear, .result-close, .member, .list-row[data-emp]';
+export function enablePressFeedback() {
+  document.addEventListener('touchstart', () => {}, { passive: true }); // lets iOS apply :active
+  const press = (e) => {
+    const el = e.target.closest(PRESSABLE);
+    if (!el || el.disabled) return;
+    el.classList.add('pressed');
+    const release = () => setTimeout(() => el.classList.remove('pressed'), 220);
+    el.addEventListener('pointerup', release, { once: true });
+    el.addEventListener('pointercancel', release, { once: true });
+    el.addEventListener('pointerleave', release, { once: true });
+    setTimeout(() => el.classList.remove('pressed'), 1500);
+  };
+  document.addEventListener('pointerdown', press, { passive: true });
 }
 
 export const ACTION_LABEL = { IN: 'Punch IN', BREAK_OUT: 'Start break', BREAK_IN: 'Back from break', OUT: 'Punch OUT' };
