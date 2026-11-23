@@ -2,8 +2,8 @@
 // Flow: find your name → tap the button → take a photo. Every line is in English with Hindi below.
 import { call, ApiError, isMock } from './api.js';
 import * as face from './face.js';
-import { $, $$, esc, initials, toast, getPosition, hideSplash, snap, bandMedia, longDay } from './ui.js';
-import { I, LOGO_URL, PHOTOS } from './icons.js';
+import { $, $$, esc, initials, toast, getPosition, hideSplash, snap, longDay } from './ui.js';
+import { I, PHOTOS, lockup, signOff } from './icons.js';
 
 const TOKEN_KEY = 'saatvikei_device_token';
 // One-time move from the earlier (misspelt) key so already-paired phones stay paired.
@@ -25,10 +25,10 @@ const store = {
 const bi = (en, hi) => `<span class="en">${esc(en)}</span><span class="hi" lang="hi">${esc(hi)}</span>`;
 
 const BUTTONS = {
-  IN: { en: 'Punch in', hi: 'पंच इन करें', cls: 'primary', icon: I.login },
-  BREAK_OUT: { en: 'Break', hi: 'ब्रेक पर जाएँ', cls: 'gold', icon: I.coffee },
-  BREAK_IN: { en: 'Back from break', hi: 'ब्रेक से वापस', cls: 'primary', icon: I.back },
-  OUT: { en: 'Punch out', hi: 'पंच आउट करें', cls: 'wine', icon: I.logout }
+  IN: { en: 'Punch in', cls: 'primary', icon: I.login },
+  BREAK_OUT: { en: 'Break', cls: 'gold', icon: I.coffee },
+  BREAK_IN: { en: 'Back from break', cls: 'primary', icon: I.back },
+  OUT: { en: 'Punch out', cls: 'wine', icon: I.logout }
 };
 const DONE = {
   IN: ['Punched in', 'पंच इन हो गया'],
@@ -55,7 +55,6 @@ const REASON_HI = {
   NOT_ENROLLED: 'चेहरा अभी रजिस्टर नहीं है। मालिक से कहें।'
 };
 
-const logoImg = (cls = 'p-logo') => `<img class="${cls}" src="${LOGO_URL}" alt="Saatvikei" fetchpriority="high" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'serif',style:'font-size:28px;font-style:italic',textContent:'Saatvikei'}))">`;
 
 function clockHtml() {
   const t = new Date().toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' });
@@ -73,25 +72,28 @@ function to12(hm) {
 function renderPairing(message = '') {
   hideSplash();
   app.innerHTML = `
-    <header class="band p-band">${bandMedia(todayPhoto())}${logoImg()}<div class="band-date" style="margin-top:22px;font-size:20px">${bi('Welcome', 'स्वागत है')}</div></header>
+    <header class="band p-band welcome">
+      <div class="band-bg" style="background-image:url('${todayPhoto()}')"></div>
+      ${lockup(true, 'lg')}
+      <h1 class="welcome-title">Welcome<span class="hi" lang="hi">आपका स्वागत है</span></h1>
+    </header>
     <div class="zari"></div>
-    <div class="card stack bil" style="padding:24px;margin-top:16px">
-      <div class="ornament">${I.lotus}</div>
-      <h2 class="center">${bi('Set up this phone', 'यह फ़ोन सेट करें')}</h2>
-      <p class="muted center" style="margin-top:6px">${bi('Ask the owner for the 6-digit code from the owner app. This is needed only once.', 'मालिक से 6 अंकों का कोड लें। यह सिर्फ़ एक बार करना है।')}</p>
+    <section class="pair-card">
+      <p class="pair-ask">Ask for the 6-digit code.<span class="hi" lang="hi">6 अंकों का कोड माँगें।</span></p>
       ${message ? `<div class="banner bad">${I.alert}<span>${esc(message)}</span></div>` : ''}
-      <input class="input code-input" id="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="••••••">
-      <button class="btn primary block big two-line" id="pair">${bi('Register this phone', 'फ़ोन रजिस्टर करें')}</button>
-    </div>`;
+      <input class="input code-input" id="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="••••••" aria-label="6-digit code">
+      <button class="btn primary block big pill" id="pair">Continue</button>
+    </section>
+    ${signOff("Gurugram's most", 'punctual boutique')}`;
   const input = $('#code');
   $('#pair').onclick = async () => {
     const code = input.value.replace(/\D/g, '');
-    if (code.length !== 6) return toast('Enter the 6-digit code · 6 अंकों का कोड डालें');
+    if (code.length !== 6) return toast('Enter all 6 digits · पूरे 6 अंक डालें');
     $('#pair').disabled = true;
     try {
       const r = await call('device.pair', { code, user_agent: navigator.userAgent });
       store.token = r.device_token;
-      toast('Phone registered · फ़ोन रजिस्टर हो गया');
+      toast('This phone is ready · फ़ोन तैयार है');
       boot();
     } catch (e) { renderPairing(e.message); }
   };
@@ -107,16 +109,16 @@ async function loadInit() {
 function statusLine(e) {
   const t = esc(e.last_time);
   switch (e.state) {
-    case 'IN': return `<span class="st ok"><i class="live-dot"></i><span>In since ${t}<span class="hi" lang="hi">${t} से अंदर</span></span></span>`;
-    case 'BREAK': return `<span class="st warn"><i class="live-dot"></i><span>On break since ${t}<span class="hi" lang="hi">${t} से ब्रेक पर</span></span></span>`;
-    case 'DONE': return `<span class="st">${I.check}<span>Left at ${t}<span class="hi" lang="hi">${t} बजे चले गए</span></span></span>`;
-    default: return `<span class="st"><span>Not in yet<span class="hi" lang="hi">अभी नहीं आए</span></span></span>`;
+    case 'IN': return `<span class="st ok"><i class="live-dot"></i>In since ${t}</span>`;
+    case 'BREAK': return `<span class="st warn"><i class="live-dot"></i>On break since ${t}</span>`;
+    case 'DONE': return `<span class="st">${I.check}Left at ${t}</span>`;
+    default: return `<span class="st">Not in yet</span>`;
   }
 }
 
 function personCard(e, open, i) {
   const buttons = open && e.state !== 'DONE'
-    ? `<div class="p-actions">${e.allowed.map((a) => `<button class="btn pbtn two-line ${BUTTONS[a].cls}" data-emp="${esc(e.emp_id)}" data-act="${a}">${BUTTONS[a].icon}<span class="lbl">${bi(BUTTONS[a].en, BUTTONS[a].hi)}</span></button>`).join('')}</div>`
+    ? `<div class="p-actions">${e.allowed.map((a) => `<button class="btn pbtn ${BUTTONS[a].cls}" data-emp="${esc(e.emp_id)}" data-act="${a}"><span class="pico">${BUTTONS[a].icon}</span><span class="lbl">${esc(BUTTONS[a].en)}</span></button>`).join('')}</div>`
     : '';
   return `
     <div class="glass person ${state.animated ? '' : 'rise'} ${e.state === 'DONE' ? 'is-done' : ''}" style="animation-delay:${Math.min(i, 8) * 40}ms" data-name="${esc(e.name.toLowerCase())}">
@@ -129,7 +131,7 @@ function personCard(e, open, i) {
 }
 
 function windowLine(w) {
-  if (w.is_open) return `<div class="status-pill open"><i class="live-dot"></i><span>Punching open · until ${esc(to12(w.close_time))}<span class="hi" lang="hi">हाज़िरी चालू है · ${esc(to12(w.close_time))} तक</span></span></div>`;
+  if (w.is_open) return `<div class="status-pill open"><i class="live-dot"></i><span>Open until ${esc(to12(w.close_time))}</span></div>`;
   let hi = 'अभी हाज़िरी बंद है।';
   if (/closed on/.test(w.reason)) hi = 'आज दुकान की छुट्टी है। हाज़िरी बंद है।';
   else if (/opens at/.test(w.reason)) hi = `हाज़िरी ${to12(w.open_time)} बजे शुरू होगी।`;
@@ -145,8 +147,8 @@ function renderHome() {
   const day = longDay();
   app.innerHTML = `
     <header class="band p-band">
-      ${bandMedia(todayPhoto())}
-      ${logoImg()}
+      <div class="band-bg" style="background-image:url('${todayPhoto()}')"></div>
+      ${lockup(true)}
       <div class="big-clock" id="clock">${clockHtml()}</div>
       <div class="band-date">${esc(day.en)}<span class="hi" lang="hi">${esc(day.hi)}</span></div>
       ${windowLine(w)}
@@ -167,7 +169,7 @@ function renderHome() {
       ${r.employees.length ? r.employees.map((e, i) => personCard(e, w.is_open, i)).join('') : `<div class="card muted center">${bi('No staff added yet. The owner adds staff in the owner app.', 'अभी कोई स्टाफ़ नहीं जोड़ा गया है।')}</div>`}
       <div class="card muted center" id="nomatch" hidden>${bi('No one found with that name.', 'इस नाम से कोई नहीं मिला।')}</div>
     </div>
-    <div class="ornament" style="margin-top:22px">${I.lotus}</div>`;
+    ${signOff("Gurugram's most", 'punctual boutique')}`;
   const q = $('#q');
   q.oninput = () => { state.query = q.value; filter(); };
   $('#qclear').onclick = () => { state.query = ''; q.value = ''; filter(); q.focus(); };
@@ -204,8 +206,8 @@ async function startPunch(emp, action, { override = false } = {}) {
     <video autoplay playsinline muted></video>
     <div class="frame"></div>
     <div class="top">
-      <div><div class="who">${esc(emp.name)}</div><div class="what">${b.icon}<span>${esc(b.en)} · <span lang="hi">${esc(b.hi)}</span>${override ? ' · for owner approval' : ''}</span></div></div>
-      <button class="btn sm" data-cancel>${I.x}<span>Cancel<span class="hi" lang="hi">रद्द करें</span></span></button>
+      <div><div class="who">${esc(emp.name)}</div><div class="what">${b.icon}<span>${esc(b.en)}${override ? ' (for approval)' : ''}</span></div></div>
+      <button class="btn sm pill" data-cancel>${I.x}Cancel</button>
     </div>
     <div class="bottom">
       <div class="prompt">${bi('Opening camera…', 'कैमरा खुल रहा है…')}</div>
@@ -275,10 +277,10 @@ function handlePunchResult(emp, action, r, photo) {
   const first = String(r.name || emp.name).split(' ')[0];
   if (r.ok && r.status === 'OK') {
     const [hEn, hHi, lEn, lHi] = HELLO[action](first);
-    return showResult('ok', I.check, [`${DONE[action][0]} · ${r.time}`, `${DONE[action][1]} · ${r.time}`], [lEn, lHi], [{ en: 'Done', hi: 'ठीक है', fn: backHome }], 3500, photo, [hEn, hHi]);
+    return showResult(action === 'OUT' ? 'bye' : action === 'BREAK_OUT' ? 'brk' : 'ok', I.check, [`${DONE[action][0]} · ${r.time}`, `${DONE[action][1]} · ${r.time}`], [lEn, lHi], [{ en: 'Done', fn: backHome }], 8000, photo, [hEn, hHi]);
   }
   if (r.ok && r.status === 'PENDING') {
-    return showResult('warn', I.clock, ['Sent to owner', 'मालिक को भेजा गया'], [`${r.name}'s punch at ${r.time} is waiting for the owner's approval.`, 'मालिक की मंज़ूरी के बाद यह पंच गिना जाएगा।'], [{ en: 'Done', hi: 'ठीक है', fn: backHome }], 5000, photo);
+    return showResult('warn', I.clock, ['Sent to owner', 'मालिक को भेजा गया'], [`${r.name}'s punch at ${r.time} is waiting for the owner's approval.`, 'मालिक की मंज़ूरी के बाद यह पंच गिना जाएगा।'], [{ en: 'Done', fn: backHome }], 9000, photo);
   }
   const retries = state.init?.face_retries || 3;
   if (r.code === 'FACE_MISMATCH') {
@@ -305,13 +307,14 @@ function showResult(kind, icon, title, text, buttons, autoMs, photo, hello) {
     ${photo ? `<div class="result-photo"><img src="${photo}" alt=""><span class="badge-ico">${icon}</span></div>` : `<div class="big-icon">${icon}</div>`}
     ${hello ? `<div class="hello">${esc(hello[0])}<span class="hi" lang="hi">${esc(hello[1])}</span></div>` : ''}
     <h1>${bi(title[0], title[1])}</h1><p>${text[1] ? bi(text[0], text[1]) : esc(text[0])}</p>
-    <div class="stack" style="margin-top:20px;width:100%;max-width:320px">${buttons.map((b, i) => `<button class="btn big block two-line ${b.ghost ? 'ghost' : ''}" data-i="${i}">${bi(b.en, b.hi)}</button>`).join('')}</div>
-    <div class="ornament">${I.lotus}</div>
+    <div class="stack" style="margin-top:22px;width:100%;max-width:320px">${buttons.map((b, i) => `<button class="btn big block pill ${b.ghost ? 'ghost' : ''}" data-i="${i}">${esc(b.en)}</button>`).join('')}</div>
+    <button class="result-close" aria-label="Close">${I.x}</button>
     ${autoMs ? `<div class="countdown" style="animation-duration:${autoMs}ms"></div>` : ''}`;
   document.body.appendChild(el);
   let timer;
   const close = () => { clearTimeout(timer); el.remove(); };
   $$('[data-i]', el).forEach((btn) => btn.addEventListener('click', () => { close(); buttons[Number(btn.dataset.i)].fn(); }));
+  $('.result-close', el).onclick = () => { close(); buttons[buttons.length - 1].fn(); };
   if (autoMs) timer = setTimeout(() => { close(); buttons[0].fn(); }, autoMs);
 }
 
@@ -350,7 +353,7 @@ async function boot() {
     hideSplash();
     if (e instanceof ApiError && e.code === 'DEVICE_NOT_PAIRED') { store.token = ''; return renderPairing(e.message); }
     if (shownCached) { toast('Offline · इंटरनेट नहीं है', 4000); scheduleRefresh(); return; }
-    app.innerHTML = `<div class="card stack center" style="margin-top:40px">${I.alert}<h2>${bi("Can't reach the server", 'सर्वर से जुड़ नहीं पाया')}</h2><p class="muted">${esc(e.message)}</p><button class="btn primary block two-line" id="retry">${bi('Try again', 'फिर कोशिश करें')}</button></div>`;
+    app.innerHTML = `<div class="card stack center" style="margin-top:40px">${I.alert}<h2>${bi("Can't reach the server", 'सर्वर से जुड़ नहीं पाया')}</h2><p class="muted">${esc(e.message)}</p><button class="btn primary block pill" id="retry">Try again</button></div>`;
     $('#retry').onclick = boot;
   }
 }

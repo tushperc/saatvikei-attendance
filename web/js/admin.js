@@ -3,7 +3,7 @@
 import { call, ApiError, isMock } from './api.js';
 import * as face from './face.js';
 import { $, $$, esc, initials, sheet, toast, ACTION_LABEL, ACTION_PAST, istNow, getPosition, hideSplash, ago, snap, bandMedia } from './ui.js';
-import { I, LOGO_URL, PHOTOS } from './icons.js';
+import { I, PHOTOS, BRAND, lockup, signOff } from './icons.js';
 
 const app = $('#app');
 const tabbar = $('#tabbar');
@@ -25,7 +25,7 @@ const seen = {
 
 const ACT_ICON = { IN: I.login, BREAK_OUT: I.coffee, BREAK_IN: I.back, OUT: I.logout };
 const ACT_VERB = { IN: 'punched in', BREAK_OUT: 'went on break', BREAK_IN: 'came back from break', OUT: 'punched out' };
-const logo = (cls) => `<img class="${cls}" src="${LOGO_URL}" alt="Saatvikei">`;
+const logo = (cls) => `<span class="hlogo ${cls}"><img src="${BRAND.lotus}" alt=""><img src="${BRAND.word}" alt="Saatvikei"></span>`;
 
 async function api(action, body = {}) {
   try {
@@ -50,7 +50,7 @@ function renderSignIn(message = '') {
       <div class="glass signin-card rise">
         <div class="band">${bandMedia(PHOTOS[0])}</div>
         <div class="body stack">
-          ${logo('logo')}
+          ${lockup(false, 'lg signin-lockup')}
           <div class="muted small">Owner studio</div>
           <p class="muted" style="margin:10px 0 4px">Attendance, photos and fixes, all in one place.</p>
           ${message ? `<div class="banner bad">${I.alert}<span>${esc(message)}</span></div>` : ''}
@@ -301,7 +301,7 @@ function renderDay(r, date, dateArg, lastSeen, fromCache) {
 
     ${r.corrections.length ? `<div class="section-title"><h3>Changes by owners</h3></div>
       <div class="glass feed">${r.corrections.map((c) => `<div class="feed-item"><div class="act" style="background:var(--info-soft);color:var(--info)">${I.edit}</div><div class="txt"><b>${esc(c.name)}</b> · ${esc(correctionText(c))}<small>${esc(c.reason)} · by ${esc(c.by)}</small></div></div>`).join('')}</div>` : ''}
-    <div class="ornament" style="margin-top:26px">${I.lotus}</div>`;
+    ${signOff('Running Saatvikei,', 'one day at a time')}`;
 
   bindHead();
   const strip = $('.week-strip'); if (strip) strip.scrollLeft = strip.scrollWidth;

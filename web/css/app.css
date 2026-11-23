@@ -622,3 +622,102 @@ table.data th { text-transform: none; letter-spacing: 0; font-size: 12px; }
 .pbtn .lbl .en, .pbtn .lbl .hi { white-space: nowrap; }
 .p-actions .pbtn:not(:only-child) { padding: 0 10px 0 8px; gap: 8px; font-size: 15px; }
 .p-actions .pbtn:not(:only-child) .ic { width: 34px; height: 34px; padding: 8px; }
+
+/* =========================================================
+   v3: pill buttons, centred brand header, sign-off footer
+   ========================================================= */
+.btn, .btn.big, .btn.sm { border-radius: 999px; }
+.btn.pill { border-radius: 999px; }
+
+/* Punch buttons: pill with the icon circle tucked into the left end */
+.pbtn { min-height: 58px; border-radius: 999px; padding: 5px 22px 5px 5px; gap: 12px; justify-content: flex-start; font-size: 16.5px; font-weight: 600; }
+.pbtn .pico { width: 48px; height: 48px; border-radius: 50%; display: grid; place-items: center; flex: none; background: rgba(255, 255, 255, .22); box-shadow: 0 1px 0 rgba(255, 255, 255, .25) inset; }
+.pbtn .pico .ic { width: 22px; height: 22px; padding: 0; background: none; }
+.pbtn.gold .pico { background: linear-gradient(145deg, #f1dfc2, #e2c697); color: #7a5524; box-shadow: none; }
+.pbtn .lbl { white-space: nowrap; }
+.p-actions .pbtn:only-child { justify-content: flex-start; }
+.p-actions .pbtn:only-child .lbl { flex: 1; text-align: center; margin-right: 48px; }
+.p-actions .pbtn:not(:only-child) { padding: 5px 16px 5px 5px; gap: 10px; font-size: 15.5px; }
+.p-actions .pbtn:not(:only-child) .pico { width: 46px; height: 46px; }
+.p-actions .pbtn:not(:only-child) .lbl { flex: 1; text-align: center; }
+
+/* Rounder, softer surfaces with a hint of brand gradient */
+.person { border-radius: 30px; padding: 18px; background: linear-gradient(160deg, rgba(255, 255, 255, .95) 0%, rgba(255, 255, 255, .82) 60%, rgba(246, 236, 226, .85) 100%); }
+.person-top { gap: 14px; }
+.st { display: inline-flex; align-items: center; gap: 7px; font-size: 14px; }
+.st .live-dot { margin-top: 0; }
+.st .ic { width: 15px; height: 15px; margin: 0; }
+.search-wrap { border-radius: 999px; padding: 0 8px 0 20px; }
+.search { padding: 18px 10px; }
+.card { border-radius: 28px; }
+.status-pill { border-radius: 999px; align-items: center; padding: 8px 16px; }
+.status-pill .live-dot { margin-top: 0; }
+
+/* Centred header: lotus + script wordmark, clock, date */
+.p-band { text-align: center; padding: calc(var(--safe-top) + 22px) 20px 50px; border-radius: 0 0 36px 36px; }
+.p-band .band-bg { filter: blur(22px) saturate(120%); background-position: center 35%; }
+.p-band::before { background: radial-gradient(120% 90% at 50% 0%, rgba(122, 38, 57, .55) 0%, rgba(78, 95, 67, .72) 55%, rgba(42, 34, 30, .86) 100%); }
+.lockup { display: inline-flex; flex-direction: column; align-items: center; gap: 2px; }
+.lockup .lk-lotus { height: 42px; width: auto; }
+.lockup .lk-word { height: 26px; width: auto; }
+.lockup.lg .lk-lotus { height: 70px; }
+.lockup.lg .lk-word { height: 40px; }
+.p-band .big-clock { justify-content: center; font-size: 84px; margin-top: 14px; }
+.p-band .band-date { margin-top: 6px; }
+.p-band .status-pill { margin: 14px auto 0; display: inline-flex; }
+.p-band + .zari { margin: -5px 32px 0; }
+.p-band ~ .search-wrap { margin-top: -32px; }
+
+/* Welcome (pairing) */
+.p-band.welcome { padding-bottom: 64px; }
+.welcome-title { font-family: var(--serif); font-style: italic; font-weight: 500; font-size: 46px; line-height: 1; margin-top: 18px; }
+.welcome-title .hi { font-family: "Poppins", sans-serif; font-style: normal; font-size: 15px; margin-top: 8px; opacity: .85; }
+.pair-card { margin: -38px 4px 0; position: relative; z-index: 3; padding: 24px 20px 22px; border-radius: 32px; text-align: center;
+  background: linear-gradient(170deg, rgba(255, 255, 255, .97), rgba(250, 243, 235, .95)); border: 1px solid #fff; box-shadow: 0 24px 50px -24px rgba(42, 34, 30, .4); }
+.pair-card > * + * { margin-top: 16px; }
+.pair-ask { margin: 0; font-size: 19px; font-weight: 600; }
+.pair-ask .hi { font-size: 14px; font-weight: 500; color: var(--ink-3); opacity: 1; margin-top: 4px; }
+.pair-card .code-input { border-radius: 999px; min-height: 64px; background: #fff; }
+
+/* Result screen: close button */
+.result-close { position: absolute; top: calc(var(--safe-top) + 14px); right: 14px; width: 44px; height: 44px; border-radius: 50%; border: 1px solid rgba(255, 255, 255, .35); background: rgba(255, 255, 255, .16); color: #fff; display: grid; place-items: center; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+.result-close .ic { width: 20px; height: 20px; }
+
+/* Sign-off footer (big quiet type, like an app's last screen) */
+.sign-off { margin: 46px 6px 10px; padding-bottom: 8px; }
+.sign-off p { margin: 0; font-size: 40px; line-height: 1.05; font-weight: 700; letter-spacing: -.035em; color: rgba(42, 34, 30, .14); }
+.sign-off p img { height: .9em; width: auto; vertical-align: -.08em; opacity: .9; }
+.sign-off .tail { position: relative; height: 1px; margin: 26px 0 18px; background: rgba(42, 34, 30, .1); }
+.sign-off .tail::after { content: ""; position: absolute; right: 0; top: 0; width: 22%; height: 1px; background: rgba(42, 34, 30, .1); transform-origin: right; transform: rotate(-8deg); }
+.sign-off .so-word { height: 30px; opacity: .3; }
+
+/* Splash with local assets */
+.splash .sp-lotus { width: 120px; margin: 0 auto; display: block; animation: breathe 2.2s ease-in-out infinite; }
+.splash .sp-word { width: 170px; margin: 6px auto 0; display: block; }
+.sign-off p { font-size: 31px; }
+@media (min-width: 420px) { .sign-off p { font-size: 36px; } }
+.pbtn .lbl { display: block; line-height: 1.2; text-align: center; }
+.banner.info { margin-top: 10px; }
+.result h1 { font-size: 26px; line-height: 1.2; }
+.result.bye { background: radial-gradient(120% 80% at 50% 0%, #a84d62, #7a2639 58%, #4f1626); }
+.result.bye .badge-ico { color: var(--wine); }
+.result.brk { background: radial-gradient(120% 80% at 50% 0%, #d6b07a, #a87d3f 58%, #765425); }
+.result.brk .badge-ico { color: #8a6430; }
+/* Owner app consistency */
+.hlogo { display: inline-flex; align-items: center; gap: 6px; }
+.hlogo img:first-child { height: 34px; width: auto; }
+.hlogo img:last-child { height: 22px; width: auto; }
+.a-head .hlogo.logo-sm img:first-child { height: 36px; }
+.tabbar .side-brand .hlogo img:first-child { height: 40px; }
+.tabbar .side-brand .hlogo img:last-child { height: 26px; }
+.signin-lockup { margin: 0 auto 4px; }
+.glass, .card, .member, .rec-card, .pending-card, .alert-card, .feed, .table-wrap { border-radius: 28px; }
+.hero.band { border-radius: 32px; }
+.day-pill { border-radius: 999px; width: 54px; padding: 10px 0; }
+.segmented { border-radius: 999px; }
+.me-pill { border-radius: 999px; }
+.icon-btn { border-radius: 50%; }
+.input, select.input { border-radius: 18px; }
+.list-row .btn.sm { padding: 0 16px; }
+.signin-card .band::before { background: linear-gradient(180deg, rgba(42, 34, 30, .1), rgba(78, 95, 67, .25) 55%, rgba(255, 255, 255, .92) 100%); }
+.signin-card .band::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 40px; background: linear-gradient(rgba(255, 255, 255, 0), rgba(253, 251, 248, 1)); }

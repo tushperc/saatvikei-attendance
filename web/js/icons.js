@@ -45,6 +45,16 @@ export const I = {
 };
 
 export const LOGO_URL = 'https://saatvikei.com/cdn/shop/files/Horizontal_Black_R.png_new_1.png?v=1739510639&width=600';
+export const BRAND = {
+  lotus: 'brand/lotus.png', lotusWhite: 'brand/lotus-white.png', lotusWine: 'brand/lotus-wine.png',
+  word: 'brand/wordmark.png', wordWhite: 'brand/wordmark-white.png'
+};
+/** Lotus above the script wordmark, centred. */
+export const lockup = (white = false, cls = '') =>
+  `<div class="lockup ${cls}"><img class="lk-lotus" src="${white ? BRAND.lotusWhite : BRAND.lotus}" alt=""><img class="lk-word" src="${white ? BRAND.wordWhite : BRAND.word}" alt="Saatvikei"></div>`;
+/** Blinkit-style sign-off at the bottom of a screen. */
+export const signOff = (line1, line2) =>
+  `<footer class="sign-off"><p>${line1}<br>${line2} <img src="${BRAND.lotusWine}" alt=""></p><div class="tail"></div><img class="so-word" src="${BRAND.word}" alt="Saatvikei"></footer>`;
 
 // Editorial photos from saatvikei.com, used as soft backdrops behind glass.
 export const PHOTOS = [
