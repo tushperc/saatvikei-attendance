@@ -737,8 +737,8 @@ async function viewSetup() {
       ${r.telegram.configured ? `
         <div class="spread"><div class="small">Bot <b>@${esc(r.telegram.bot)}</b></div><span class="chip ok"><i class="live-dot"></i>Active</span></div>
         <div>${r.telegram.chats.length ? r.telegram.chats.map((c) => `<div class="list-row"><div class="avatar sm">${esc(initials(c.name || 'T'))}</div><div class="grow"><b>${esc(c.name || 'Chat')}</b><span class="muted small">${esc(c.email)} · since ${esc(c.linked_on)}</span></div><button class="btn sm" data-unlink="${esc(c.chat_id)}">Remove</button></div>`).join('') : '<div class="muted small">No one is getting alerts yet.</div>'}</div>
-        <div class="row wrap"><button class="btn grow" id="tgme">${I.link} Connect Telegram</button><button class="btn grow" id="tgtest" ${r.telegram.chats.length ? '' : 'disabled'}>${I.bell} Send test</button></div>
-        <div id="tgmeout"></div>
+        <div class="row wrap"><button class="btn grow" id="tgme">${I.link} Connect Telegram</button><button class="btn grow" id="tgtest">${I.shield} Check Telegram</button></div>
+        <div id="tgmeout"></div><div id="tgdiag"></div>
         <details><summary class="small muted">Change bot token</summary><div class="row" style="margin-top:8px"><input class="input grow" id="tgtoken" placeholder="123456:ABC…"><button class="btn" id="tgsave">Save</button></div></details>`
       : `<p class="muted small" style="margin:0">Create a free bot: open Telegram, search <b>@BotFather</b>, send <code>/newbot</code>, follow the steps, then paste the token here.</p>
         <div class="row"><input class="input grow" id="tgtoken" placeholder="123456:ABC…" autocomplete="off"><button class="btn primary" id="tgsave">Save</button></div>`}
@@ -809,7 +809,23 @@ async function viewSetup() {
       $('#tgchk').onclick = async () => { const c = await api('admin.telegram.check'); if (c.linked.length) { toast('Connected'); viewSetup(); } else toast('Not yet. Press Start in Telegram, then check again.'); };
     } catch (e) { toast(e.message, 4000); }
   });
-  $('#tgtest')?.addEventListener('click', async () => { try { await api('admin.telegram.test'); toast('Test sent'); } catch (e) { toast(e.message); } });
+  $('#tgtest')?.addEventListener('click', async () => {
+    const out = $('#tgdiag');
+    out.innerHTML = '<div class="row" style="margin-top:6px"><div class="spinner"></div><span class="muted small">Checking the bot and sending a test to every connected chat…</span></div>';
+    try {
+      const d = await api('admin.telegram.diag');
+      const when = (x) => x ? new Date(x.at).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', timeZone: 'Asia/Kolkata' }) : 'never';
+      const line = (ok, text) => `<div class="banner ${ok ? 'ok' : 'bad'}" style="margin:8px 0 0">${ok ? I.check : I.alert}<span>${text}</span></div>`;
+      out.innerHTML = [
+        line(d.token_saved, d.token_saved ? 'Bot token is saved' : 'No bot token saved. Paste it above.'),
+        d.token_saved ? line(d.bot_ok, d.bot_ok ? `Bot @${esc(d.bot)} is working` : `Telegram rejected the bot: ${esc(d.bot)}. Paste the token again (BotFather → /mybots → API Token).`) : '',
+        d.webhook ? line(false, 'The bot has a webhook set elsewhere, which can stop linking from working. Ask the developer.') : '',
+        line(d.chats.length > 0, d.chats.length ? `${d.chats.length} chat(s) connected` : 'No chat is connected, so nobody receives alerts. Tap Connect Telegram.'),
+        ...d.chats.map((c) => line(c.delivered, c.delivered ? `Test delivered to ${esc(c.name || c.email)}` : `Could not reach ${esc(c.name || c.email)}: ${esc(c.error || 'unknown error')}. If the bot was blocked or the chat deleted, remove it and connect again.`)),
+        `<p class="muted small" style="margin:10px 0 0">Last alert delivered: ${when(d.last_ok)}${d.last_error ? `<br>Last problem: ${when(d.last_error)}, ${esc(d.last_error.error)}` : ''}</p>`
+      ].join('');
+    } catch (e) { out.innerHTML = `<div class="banner bad">${I.alert}<span>${esc(e.message)}</span></div>`; }
+  });
   $$('[data-unlink]').forEach((b) => b.onclick = async () => { if (!confirm('Stop sending alerts to this chat?')) return; await api('admin.telegram.unlink', { chat_id: b.dataset.unlink }); viewSetup(); });
 
   // Devices

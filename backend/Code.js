@@ -31,6 +31,7 @@ function routes_() {
     'admin.telegram.link': adminTelegramLink_,
     'admin.telegram.check': adminTelegramCheck_,
     'admin.telegram.test': adminTelegramTest_,
+    'admin.telegram.diag': adminTelegramDiag_,
     'admin.telegram.unlink': adminTelegramUnlink_,
     'admin.admins.add': adminAddAdmin_,
     'admin.admins.remove': adminRemoveAdmin_,

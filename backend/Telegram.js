@@ -14,11 +14,22 @@ function tgCall_(method, payload) {
     });
     var body = JSON.parse(res.getContentText() || '{}');
     if (!body.ok) console.warn('Telegram ' + method + ' failed: ' + res.getContentText());
+    if (/^send/.test(method)) tgRecord_(method, body.ok, body.ok ? '' : (body.description || ('HTTP ' + res.getResponseCode())), payload.chat_id);
     return body;
   } catch (err) {
     console.warn('Telegram ' + method + ' error: ' + err);
+    if (/^send/.test(method)) tgRecord_(method, false, String(err), payload.chat_id);
     return null;
   }
+}
+
+/** Remembers the last successful and last failed send, so the owner app can show what happened. */
+function tgRecord_(method, ok, error, chatId) {
+  try {
+    var props = PropertiesService.getScriptProperties();
+    var stamp = JSON.stringify({ at: Date.now(), method: method, chat_id: String(chatId || ''), error: error || '' });
+    props.setProperty(ok ? 'TG_LAST_OK' : 'TG_LAST_ERROR', stamp);
+  } catch (e) { /* ignore */ }
 }
 
 function ownerChats_() {
@@ -29,7 +40,10 @@ function saveOwnerChats_(list) { setProp_('OWNER_CHATS', JSON.stringify(list)); 
 
 /** Send to every linked owner/admin chat. photoBlob is optional. */
 function notifyOwners_(text, photoBlob) {
-  ownerChats_().forEach(function (c) {
+  var chats = ownerChats_();
+  if (!tgToken_()) { tgRecord_('notify', false, 'No bot token saved', ''); return; }
+  if (!chats.length) { tgRecord_('notify', false, 'No Telegram chat is connected, so nobody receives alerts', ''); return; }
+  chats.forEach(function (c) {
     if (photoBlob) {
       var r = tgCall_('sendPhoto', { chat_id: String(c.chat_id), caption: text.slice(0, 1024), photo: photoBlob.copyBlob() });
       if (!r || !r.ok) tgCall_('sendMessage', { chat_id: String(c.chat_id), text: text, disable_web_page_preview: 'true' });

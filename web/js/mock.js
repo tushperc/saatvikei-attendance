@@ -169,6 +169,7 @@ export async function mockCall(req) {
       if (!req.emp_id && !db.chats.length) db.chats.push({ chat_id: 1, email: 'owner@example.com', name: 'Owner', linked_on: ist.date });
       save(db); return { ok: true, linked: [{ type: 'admin', name: 'Owner' }] };
     case 'admin.telegram.test': return { ok: true };
+    case 'admin.telegram.diag': return { ok: true, token_saved: true, bot_ok: true, bot: 'SaatvikeiAttendanceBot', webhook: '', chats: db.chats.map((c) => ({ name: c.name, email: c.email, delivered: true })), last_ok: { at: now - 600000 }, last_error: null };
     case 'admin.telegram.unlink': db.chats = db.chats.filter((c) => String(c.chat_id) !== String(req.chat_id)); save(db); return { ok: true };
     case 'admin.admins.add': db.admins.push(req.email); save(db); return { ok: true, admins: db.admins };
     case 'admin.admins.remove': db.admins = db.admins.filter((x) => x !== req.email); save(db); return { ok: true, admins: db.admins };

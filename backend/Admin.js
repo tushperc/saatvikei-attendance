@@ -397,6 +397,28 @@ function adminTelegramTest_(req) {
   return { ok: true };
 }
 
+/** Full Telegram health check: token, bot, connected chats, last send results, and a live test to each chat. */
+function adminTelegramDiag_(req) {
+  var email = requireAdmin_(req);
+  var out = { ok: true, token_saved: !!tgToken_(), bot: '', bot_ok: false, webhook: '', chats: [], last_ok: null, last_error: null };
+  var parse = function (k) { try { return JSON.parse(prop_(k) || 'null'); } catch (e) { return null; } };
+  out.last_ok = parse('TG_LAST_OK');
+  out.last_error = parse('TG_LAST_ERROR');
+  if (out.token_saved) {
+    var me = tgCall_('getMe', {});
+    out.bot_ok = !!(me && me.ok);
+    out.bot = me && me.ok ? me.result.username : (me && me.description) || 'Telegram did not answer';
+    var wh = tgCall_('getWebhookInfo', {});
+    out.webhook = wh && wh.ok && wh.result.url ? wh.result.url : '';
+  }
+  var when = istParts_(Date.now());
+  out.chats = ownerChats_().map(function (c) {
+    var r = out.bot_ok ? tgCall_('sendMessage', { chat_id: String(c.chat_id), text: '🔔 Telegram check by ' + email + ' at ' + fmt12_(Date.now()) + ': alerts are reaching this chat.', disable_web_page_preview: 'true' }) : null;
+    return { name: c.name, email: c.email, delivered: !!(r && r.ok), error: r && !r.ok ? r.description : (out.bot_ok ? '' : 'Bot not working') };
+  });
+  return out;
+}
+
 function adminTelegramUnlink_(req) {
   var email = requireAdmin_(req);
   if (req.emp_id) {
